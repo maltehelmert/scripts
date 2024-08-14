@@ -89,33 +89,53 @@ def parse_building(name, recipe_text, duration):
     return Building(name, sources, targets, duration)
 
 
+def filter_preferred(buildings):
+    # Filter our buildings with alt recipes we don't want to use in
+    # our calculations.
+    removed = {
+        "water pump",
+        "sea water filter",
+        "charcoal maker",
+        "wood factory",
+        "stone mine",
+        }
+    return [building for building in buildings
+            if building.name not in removed]
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7),
-    parse_building("apple farm", "1 water -> 2 apple", 10),
-    parse_building("forester", "1 water -> 1 tree", 10),
-    parse_building("lumber camp", "1 apple, 1 tree -> 1 lumber", 15),
-    parse_building("saw mill", "1 lumber -> 2 wood", 10),
-    parse_building("stone quarry", "1 apple -> 2 stone", 20),
-    parse_building("stone tool maker", "1 stone, 1 wood -> 2 stone tool", 7),
-    parse_building("wood furniture maker", "1 lumber, 1 stone tool -> 2 wood furniture", 15),
-    parse_building("carpenter workshop", "1 wood, 1 stone tool -> 2 plank", 25),
-    parse_building("stone blocker", "1 stone, 1 stone tool -> 2 stone block", 25),
-    parse_building("juice maker", "1 plank, 1 apple -> 2 juice", 15),
     parse_building("water pump", "1 bread -> 3 water", 5), # alt
     parse_building("sea water filter", "1 coal -> 2 water", 20), # alt
+    #
+    parse_building("apple farm", "1 water -> 2 apple", 10),
+    parse_building("juice maker", "1 plank, 1 apple -> 2 juice", 15),
     parse_building("wheat farm", "1 water -> 2 wheat", 10),
     parse_building("bakery", "2 wheat, 1 coal -> 2 bread", 20),
-    parse_building("coal quarry", "1 apple -> 2 coal", 20),
+    parse_building("cow farm", "1 water, 1 wheat -> 2 cow", 15),
+    #
+    parse_building("lumber camp", "1 apple, 1 tree -> 1 lumber", 15),
+    parse_building("saw mill", "1 lumber -> 2 wood", 10),
+    parse_building("forester", "1 water -> 1 tree", 10),
+    parse_building("carpenter workshop", "1 wood, 1 stone tool -> 2 plank", 25),
     parse_building("charcoal maker", "1 apple, 1 lumber -> 2 coal", 15), # alt
+    parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20), # alt
+    #
+    parse_building("stone quarry", "1 apple -> 2 stone", 20),
+    parse_building("stone mine", "1 bread -> 3 stone", 10), # alt
+    parse_building("coal quarry", "1 apple -> 2 coal", 20),
     parse_building("iron quarry", "1 bread -> 2 iron ore", 20),
+    #
+    parse_building("stone tool maker", "1 stone, 1 wood -> 2 stone tool", 7),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
+    #
+    parse_building("wood furniture maker", "1 lumber, 1 stone tool -> 2 wood furniture", 15),
+    parse_building("leather furniture maker", "1 leather, 1 wood furniture -> 1 leather furniture", 15),
+    #
+    parse_building("stone blocker", "1 stone, 1 stone tool -> 2 stone block", 25),
     parse_building("iron smelter", "1 coal, 2 iron ore -> 2 iron bar", 15),
     parse_building("paper factory", "1 wood, 1 iron tool -> 2 paper", 30),
-    parse_building("cow farm", "1 water, 1 wheat -> 2 cow", 15),
-    parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20), # alt
     parse_building("leather maker", "1 cow, 1 iron tool -> 2 leather", 20),
-    parse_building("leather furniture maker", "1 leather, 1 wood furniture -> 1 leather furniture", 15),
-    parse_building("stone mine", "1 bread -> 3 stone", 10) # alt
 ]
 
 
@@ -201,7 +221,7 @@ def analyze_scenario(scenario):
     SECONDS_PER_MINUTE = 60
     virtual_buildings = [center.get_virtual_building_for_center()
                          for amount, center in scenario]
-    producers = get_producers(BUILDINGS + virtual_buildings)
+    producers = get_producers(filter_preferred(BUILDINGS + virtual_buildings))
     total_ingredients = defaultdict(int)
     total_buildings = defaultdict(int)
     for amount, center in scenario:
@@ -220,7 +240,7 @@ def analyze_scenario(scenario):
 def analyze_house(center):
     print(f"analyzing 1 house of {center.name}...")
     virtual_buildings = [center.get_virtual_building_for_house()]
-    producers = get_producers(BUILDINGS + virtual_buildings)
+    producers = get_producers(filter_preferred(BUILDINGS + virtual_buildings))
     need = center.get_virtual_resource()
     ingredients, buildings = get_requirements(need, producers)
     print("ingredients needed per house per cycle:")
@@ -237,10 +257,6 @@ def main():
     analyze_scenario(SCENARIO)
     print()
     analyze_house(NATIVE_TOWN_CENTER_II)
-
-
-# TODO: Compare to the computations on paper.
-# TODO: Double-check recipes that are not exercised by this.
 
 
 if __name__ == "__main__":
