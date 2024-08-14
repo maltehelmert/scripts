@@ -107,7 +107,7 @@ BUILDINGS = [
     parse_building("bakery", "2 wheat, 1 coal -> 2 bread", 20),
     parse_building("coal quarry", "1 apple -> 2 coal", 15),
     parse_building("charcoal maker", "1 apple, 1 lumber -> 2 coal", 15), # alt
-    parse_building("iron quarry", "1 bread -> 1 iron ore", 20),
+    parse_building("iron quarry", "1 bread -> 2 iron ore", 20),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
     parse_building("iron smelter", "1 coal, 2 iron ore -> 2 iron bar", 15),
     parse_building("paper factory", "1 wood, 1 iron tool -> 2 paper", 30),
