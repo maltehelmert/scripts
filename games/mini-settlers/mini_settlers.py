@@ -103,6 +103,33 @@ def filter_preferred(buildings):
             if building.name not in removed]
 
 
+def filter_coral_crescent(buildings):
+    removed = {
+        "water well",
+        "water pump",
+        "sea water filter",
+        "apple farm",
+        "wheat farm",
+        "cow farm",
+        "lumber camp",
+        "forester",
+        "wood factory",
+        #
+        "charcoal maker",
+        "stone mine",
+        }
+    buildings = [building for building in buildings
+                 if building.name not in removed]
+    TRADERS = [
+        parse_building("trader A (apple)", "-> 1 apple", 2),
+        parse_building("trader B (stone -> lumber)", "1 stone -> 1 lumber", 2),
+        parse_building("trader C (stone tool -> cow)", "1 stone tool -> 1 cow", 2),
+        parse_building("trader D (juice -> wheat)", "1 juice -> 1 wheat", 2),
+    ]
+
+    return buildings + TRADERS
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7),
     parse_building("water pump", "1 bread -> 3 water", 5), # alt
@@ -216,12 +243,12 @@ def print_tally(tally, indent=""):
         print(f"{indent}{amount:8.3f} {element} [exact: {amount.numerator}/{amount.denominator}]")
 
 
-def analyze_scenario(scenario):
+def analyze_scenario(scenario, filter_func=filter_preferred):
     print("analyzing scenario...")
     SECONDS_PER_MINUTE = 60
     virtual_buildings = [center.get_virtual_building_for_center()
                          for amount, center in scenario]
-    producers = get_producers(filter_preferred(BUILDINGS + virtual_buildings))
+    producers = get_producers(filter_func(BUILDINGS + virtual_buildings))
     total_ingredients = defaultdict(int)
     total_buildings = defaultdict(int)
     for amount, center in scenario:
@@ -237,10 +264,10 @@ def analyze_scenario(scenario):
     print_tally(total_buildings, "  ")
 
 
-def analyze_house(center):
+def analyze_house(center, filter_func=filter_preferred):
     print(f"analyzing 1 house of {center.name}...")
     virtual_buildings = [center.get_virtual_building_for_house()]
-    producers = get_producers(filter_preferred(BUILDINGS + virtual_buildings))
+    producers = get_producers(filter_func(BUILDINGS + virtual_buildings))
     need = center.get_virtual_resource()
     ingredients, buildings = get_requirements(need, producers)
     print("ingredients needed per house per cycle:")
@@ -249,14 +276,29 @@ def analyze_house(center):
     print_tally(buildings, "  ")
 
 
+def analyze_resource_production(need, filter_func=filter_preferred):
+    print(f"analyzing {need}...")
+    producers = get_producers(filter_func(BUILDINGS))
+    ingredients, buildings = get_requirements(need, producers)
+    print("ingredients needed per resource produced:")
+    print_tally(ingredients, "  ")
+    print("building production seconds needed per resource produced:")
+    print_tally(buildings, "  ")
+
+
 def main():
     SCENARIO_HARBOR_ISLANDS = [
         (2, CITY_CENTER_II),
         (1, NATIVE_TOWN_CENTER_II),
     ]
-    analyze_scenario(SCENARIO_HARBOR_ISLANDS)
+    SCENARIO_CORAL_CRESCENT = [
+        (3, CITY_CENTER_II),
+    ]
     # analyze_house(NATIVE_TOWN_CENTER_II)
-
+    # analyze_scenario(SCENARIO_HARBOR_ISLANDS)
+    # analyze_house(CITY_CENTER_II, filter_coral_crescent)
+    analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
+    analyze_resource_production("bread", filter_coral_crescent)
 
 if __name__ == "__main__":
     main()
