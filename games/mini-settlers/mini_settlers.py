@@ -105,7 +105,7 @@ BUILDINGS = [
     parse_building("sea water filter", "1 coal -> 2 water", 20), # alt
     parse_building("wheat farm", "1 water -> 2 wheat", 10),
     parse_building("bakery", "2 wheat, 1 coal -> 2 bread", 20),
-    parse_building("coal quarry", "1 apple -> 2 coal", 15),
+    parse_building("coal quarry", "1 apple -> 2 coal", 20),
     parse_building("charcoal maker", "1 apple, 1 lumber -> 2 coal", 15), # alt
     parse_building("iron quarry", "1 bread -> 2 iron ore", 20),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
@@ -115,7 +115,17 @@ BUILDINGS = [
     parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20), # alt
     parse_building("leather maker", "1 cow, 1 iron tool -> 2 leather", 20),
     parse_building("leather furniture maker", "1 leather, 1 wood furniture -> 1 leather furniture", 15),
+    parse_building("stone mine", "1 bread -> 3 stone", 10) # alt
 ]
+
+
+CITY_CENTER_I = CityCenter(
+    name="city center I",
+    number_of_houses=10,
+    required_resources=["water", "apple", "wood furniture"],
+    consumption_time_per_resource=50,
+    # The game says 50 seconds. It may be worth measuring this.
+)
 
 
 CITY_CENTER_II = CityCenter(
@@ -130,7 +140,7 @@ CITY_CENTER_II = CityCenter(
 NATIVE_TOWN_CENTER_II = CityCenter(
     name="native town center II",
     number_of_houses=15,
-    required_resources=["leather", "iron tool", "plank"],
+    required_resources=["plank", "iron tool", "leather"],
     consumption_time_per_resource=55,
     # I measured 55-60 seconds; the game does not tell us.
 )
