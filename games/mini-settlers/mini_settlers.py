@@ -250,13 +250,12 @@ def analyze_house(center):
 
 
 def main():
-    SCENARIO = [
+    SCENARIO_HARBOR_ISLANDS = [
         (2, CITY_CENTER_II),
         (1, NATIVE_TOWN_CENTER_II),
     ]
-    analyze_scenario(SCENARIO)
-    print()
-    analyze_house(NATIVE_TOWN_CENTER_II)
+    analyze_scenario(SCENARIO_HARBOR_ISLANDS)
+    # analyze_house(NATIVE_TOWN_CENTER_II)
 
 
 if __name__ == "__main__":
