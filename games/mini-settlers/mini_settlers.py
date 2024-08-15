@@ -215,7 +215,7 @@ def get_producers(buildings):
     return producers
 
 
-def get_requirements(resource, producers):
+def get_requirements(resource, producers, given):
     producer = producers[resource]
     production_time = producer.duration
     (amount_produced, item_produced), = producer.targets
@@ -223,13 +223,16 @@ def get_requirements(resource, producers):
     multiplier = F(1, amount_produced)
     ingredients = defaultdict(int)
     buildings = defaultdict(int)
-    ingredients[resource] += 1
-    buildings[producer.name] += multiplier * production_time
-    for amount_needed, ingredient in producer.sources:
-        factor = multiplier * amount_needed
-        rec_ingredients, rec_buildings = get_requirements(ingredient, producers)
-        add_to_tally(scale_tally(rec_ingredients, factor), ingredients)
-        add_to_tally(scale_tally(rec_buildings, factor), buildings)
+    if resource in given:
+        ingredients[f"{resource} [given]"] += 1
+    else:
+        ingredients[resource] += 1
+        buildings[producer.name] += multiplier * production_time
+        for amount_needed, ingredient in producer.sources:
+            factor = multiplier * amount_needed
+            rec_ingredients, rec_buildings = get_requirements(ingredient, producers, given)
+            add_to_tally(scale_tally(rec_ingredients, factor), ingredients)
+            add_to_tally(scale_tally(rec_buildings, factor), buildings)
     return ingredients, buildings
 
 
@@ -243,8 +246,10 @@ def print_tally(tally, indent=""):
         print(f"{indent}{amount:8.3f} {element} [exact: {amount.numerator}/{amount.denominator}]")
 
 
-def analyze_scenario(scenario, filter_func=filter_preferred):
+def analyze_scenario(scenario, filter_func=filter_preferred, given=set()):
     print("analyzing scenario...")
+    if given:
+        print(f"assuming as given ingredients: {', '.join(sorted(given))}")
     SECONDS_PER_MINUTE = 60
     virtual_buildings = [center.get_virtual_building_for_center()
                          for amount, center in scenario]
@@ -253,7 +258,7 @@ def analyze_scenario(scenario, filter_func=filter_preferred):
     total_buildings = defaultdict(int)
     for amount, center in scenario:
         need = center.get_virtual_resource()
-        ingredients, buildings = get_requirements(need, producers)
+        ingredients, buildings = get_requirements(need, producers, given)
         ingredients_multiplier = amount * F(SECONDS_PER_MINUTE, center.get_cycle_time())
         buildings_multiplier = amount * F(1, center.get_cycle_time())
         add_to_tally(scale_tally(ingredients, ingredients_multiplier), total_ingredients)
@@ -264,22 +269,26 @@ def analyze_scenario(scenario, filter_func=filter_preferred):
     print_tally(total_buildings, "  ")
 
 
-def analyze_house(center, filter_func=filter_preferred):
+def analyze_house(center, filter_func=filter_preferred, given=set()):
     print(f"analyzing 1 house of {center.name}...")
+    if given:
+        print(f"assuming as given ingredients: {', '.join(sorted(given))}")
     virtual_buildings = [center.get_virtual_building_for_house()]
     producers = get_producers(filter_func(BUILDINGS + virtual_buildings))
     need = center.get_virtual_resource()
-    ingredients, buildings = get_requirements(need, producers)
+    ingredients, buildings = get_requirements(need, producers, given)
     print("ingredients needed per house per cycle:")
     print_tally(ingredients, "  ")
     print("building production seconds needed per house per cycle:")
     print_tally(buildings, "  ")
 
 
-def analyze_resource_production(need, filter_func=filter_preferred):
-    print(f"analyzing {need}...")
+def analyze_build(need, filter_func=filter_preferred, given=set()):
+    print(f"analyzing build for {need}...")
+    if given:
+        print(f"assuming as given ingredients: {', '.join(sorted(given))}")
     producers = get_producers(filter_func(BUILDINGS))
-    ingredients, buildings = get_requirements(need, producers)
+    ingredients, buildings = get_requirements(need, producers, given)
     print("ingredients needed per resource produced:")
     print_tally(ingredients, "  ")
     print("building production seconds needed per resource produced:")
@@ -297,8 +306,19 @@ def main():
     # analyze_house(NATIVE_TOWN_CENTER_II)
     # analyze_scenario(SCENARIO_HARBOR_ISLANDS)
     # analyze_house(CITY_CENTER_II, filter_coral_crescent)
-    analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
-    analyze_resource_production("bread", filter_coral_crescent)
+    # analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
+    analyze_build("bread", filter_coral_crescent)
+    analyze_build("iron tool", filter_coral_crescent,
+                  given={"bread"})
+    analyze_build("leather furniture", filter_coral_crescent,
+                  given={"iron tool"})
+    analyze_build("paper", filter_coral_crescent,
+                  given={"iron tool", "lumber"})
+    analyze_build("juice", filter_coral_crescent,
+                  given={"lumber", "stone"})
+    analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent,
+                     given={"bread", "iron tool", "leather furniture", "paper", "juice"})
+    analyze_build("bread", filter_coral_crescent, given="juice")
 
 if __name__ == "__main__":
     main()
