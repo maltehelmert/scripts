@@ -98,6 +98,8 @@ def filter_preferred(buildings):
         "charcoal maker",
         "wood factory",
         "stone mine",
+        "coal mine",
+        "iron mine",
         }
     return [building for building in buildings
             if building.name not in removed]
@@ -140,6 +142,9 @@ BUILDINGS = [
     parse_building("wheat farm", "1 water -> 2 wheat", 10),
     parse_building("bakery", "2 wheat, 1 coal -> 2 bread", 20),
     parse_building("cow farm", "1 water, 1 wheat -> 2 cow", 15),
+    parse_building("milk factory", "1 cow, 1 glass -> 2 milk", 20),
+    parse_building("butcher", "1 cow, 1 iron tool -> 2 meat", 20),
+    parse_building("restaurant", "1 bread, 1 meat -> 2 sandwich", 20),
     #
     parse_building("lumber camp", "1 apple, 1 tree -> 1 lumber", 15),
     parse_building("saw mill", "1 lumber -> 2 wood", 10),
@@ -147,22 +152,33 @@ BUILDINGS = [
     parse_building("carpenter workshop", "1 wood, 1 stone tool -> 2 plank", 25),
     parse_building("charcoal maker", "1 apple, 1 lumber -> 2 coal", 15), # alt
     parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20), # alt
+    parse_building("wood beam workshop", "1 iron tool, 1 plank -> 2 wood beam", 40),
     #
     parse_building("stone quarry", "1 apple -> 2 stone", 20),
     parse_building("stone mine", "1 bread -> 3 stone", 10), # alt
     parse_building("coal quarry", "1 apple -> 2 coal", 20),
+    parse_building("coal mine", "1 bread -> 3 coal", 10), # alt
     parse_building("iron quarry", "1 bread -> 2 iron ore", 20),
+    parse_building("iron mine", "1 bread -> 3 iron ore", 10), # alt
+    parse_building("sand collector", "1 juice -> 1 sand", 20),
+    parse_building("diamond mine", "1 meat, 1 steel tool -> 3 diamond", 10),
     #
     parse_building("stone tool maker", "1 stone, 1 wood -> 2 stone tool", 7),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
+    parse_building("steel tool maker", "1 steel beam, 1 iron tool -> 2 steel tool", 15),
     #
     parse_building("wood furniture maker", "1 lumber, 1 stone tool -> 2 wood furniture", 15),
     parse_building("leather furniture maker", "1 leather, 1 wood furniture -> 1 leather furniture", 15),
+    parse_building("luxury furniture maker", "1 diamond, 1 leather furniture -> 1 luxury furniture", 25),
     #
     parse_building("stone blocker", "1 stone, 1 stone tool -> 2 stone block", 25),
+    parse_building("stone masonry", "1 iron tool, 1 stone block -> 2 stone tile", 40),
     parse_building("iron smelter", "1 coal, 2 iron ore -> 2 iron bar", 15),
     parse_building("paper factory", "1 wood, 1 iron tool -> 2 paper", 30),
     parse_building("leather maker", "1 cow, 1 iron tool -> 2 leather", 20),
+    parse_building("glass maker", "1 sand, 1 coal -> 2 glass", 25),
+    parse_building("steel smelter", "1 coal, 1 iron bar -> 1 steel beam", 20),
+    parse_building("library", "1 leather, 1 paper, 1 steel tool -> 2 book", 25),
 ]
 
 
@@ -181,6 +197,15 @@ CITY_CENTER_II = CityCenter(
     required_resources=["juice", "bread", "paper", "leather furniture"],
     consumption_time_per_resource=50,
     # The game says 50 seconds. It may be worth measuring this.
+)
+
+
+CITY_CENTER_III = CityCenter(
+    name="city center III",
+    number_of_houses=20,
+    required_resources=["milk", "sandwich", "book", "luxury furniture"],
+    consumption_time_per_resource=60,
+    # The game says 60 seconds. It may be worth measuring this.
 )
 
 
@@ -303,22 +328,16 @@ def main():
     SCENARIO_CORAL_CRESCENT = [
         (3, CITY_CENTER_II),
     ]
+    SCENARIO_CORAL_HAVEN = [
+        (2, CITY_CENTER_III),
+    ]
     # analyze_house(NATIVE_TOWN_CENTER_II)
     # analyze_scenario(SCENARIO_HARBOR_ISLANDS)
     # analyze_house(CITY_CENTER_II, filter_coral_crescent)
     # analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
-    analyze_build("bread", filter_coral_crescent)
-    analyze_build("iron tool", filter_coral_crescent,
-                  given={"bread"})
-    analyze_build("leather furniture", filter_coral_crescent,
-                  given={"iron tool"})
-    analyze_build("paper", filter_coral_crescent,
-                  given={"iron tool", "lumber"})
-    analyze_build("juice", filter_coral_crescent,
-                  given={"lumber", "stone"})
-    analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent,
-                     given={"bread", "iron tool", "leather furniture", "paper", "juice"})
-    analyze_build("bread", filter_coral_crescent, given="juice")
+    # analyze_build("iron tool", filter_coral_crescent, given={"bread"})
+    analyze_scenario(SCENARIO_CORAL_HAVEN)
+
 
 if __name__ == "__main__":
     main()
