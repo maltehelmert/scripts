@@ -132,6 +132,20 @@ def filter_coral_crescent(buildings):
     return buildings + TRADERS
 
 
+def filter_coral_haven(buildings):
+    removed = {
+        "water pump",
+        "sea water filter",
+        "charcoal maker",
+        "wood factory",
+        "stone mine",
+        "coal mine",
+        "iron quarry",
+        }
+    return [building for building in buildings
+            if building.name not in removed]
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7),
     parse_building("water pump", "1 bread -> 3 water", 5), # alt
@@ -165,7 +179,7 @@ BUILDINGS = [
     #
     parse_building("stone tool maker", "1 stone, 1 wood -> 2 stone tool", 7),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
-    parse_building("steel tool maker", "1 steel beam, 1 iron tool -> 2 steel tool", 15),
+    parse_building("steel tool maker", "1 steel bar, 1 iron tool -> 2 steel tool", 15),
     #
     parse_building("wood furniture maker", "1 lumber, 1 stone tool -> 2 wood furniture", 15),
     parse_building("leather furniture maker", "1 leather, 1 wood furniture -> 1 leather furniture", 15),
@@ -177,7 +191,7 @@ BUILDINGS = [
     parse_building("paper factory", "1 wood, 1 iron tool -> 2 paper", 30),
     parse_building("leather maker", "1 cow, 1 iron tool -> 2 leather", 20),
     parse_building("glass maker", "1 sand, 1 coal -> 2 glass", 25),
-    parse_building("steel smelter", "1 coal, 1 iron bar -> 1 steel beam", 20),
+    parse_building("steel smelter", "1 coal, 1 iron bar -> 1 steel bar", 20),
     parse_building("library", "1 leather, 1 paper, 1 steel tool -> 2 book", 25),
 ]
 
@@ -336,8 +350,30 @@ def main():
     # analyze_house(CITY_CENTER_II, filter_coral_crescent)
     # analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
     # analyze_build("iron tool", filter_coral_crescent, given={"bread"})
-    analyze_scenario(SCENARIO_CORAL_HAVEN)
+    # analyze_scenario(SCENARIO_CORAL_HAVEN, filter_coral_haven, given={"bread"})
+    # analyze_build("bread")
+    analyze_scenario(
+        SCENARIO_CORAL_HAVEN, filter_coral_haven,
+        given={
+            "stone", "lumber", "coal", "bread", "iron bar", "steel bar",
+            "stone tool", "iron tool", "steel tool", "milk", "cow",
+            "sandwich", "meat", "book", "luxury furniture",
+        })
+    # analyze_build("steel tool", filter_coral_haven,
+    #               given={"lumber", "stone", "iron bar", "steel bar"})
+    # analyze_build("sandwich", filter_coral_haven,
+    #               given={"cow", "bread", "iron tool"})
+    # analyze_build("book", filter_coral_haven,
+    #               given={"steel tool", "iron tool", "cow", "lumber"})
+    # analyze_build("luxury furniture", filter_coral_haven,
+    #               given={"diamond", "stone tool", "iron tool", "cow", "lumber"})
 
 
 if __name__ == "__main__":
     main()
+
+#     1.528 iron tool maker [exact: 55/36]
+#     1.667 iron smelter [exact: 5/3]
+#     0.741 iron mine [exact: 20/27]
+#     1.042 steel tool maker [exact: 25/24]
+#     1.389 steel smelter [exact: 25/18]
