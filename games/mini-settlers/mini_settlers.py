@@ -223,7 +223,7 @@ CITY_CENTER_III = CityCenter(
 )
 
 
-NATIVE_TOWN_CENTER_II = CityCenter(
+NATIVE_VILLAGE_CENTER_II = CityCenter(
     name="native town center II",
     number_of_houses=15,
     required_resources=["plank", "iron tool", "leather"],
@@ -334,10 +334,111 @@ def analyze_build(need, filter_func=filter_preferred, given=set()):
     print_tally(buildings, "  ")
 
 
+def production_time(tile_fraction, base_time):
+    # This multiplier has been determined empirically based on the
+    # production times shown in the game.
+
+    # The times shown in the game are whole numbers instead of the
+    # fractional values shown here. The computed numbers match the numbers
+    # shown in the game if we mangle the fractional values as follows:
+    #
+    # - First, round to one decimal digit.
+    # - Then, round to the nearest integer, breaking ties in favour
+    #   of even numbers.
+    #
+    # In Python, this corresponts to x -> round(round(x, 1)).
+    #
+    # For example, 3.47 and 3.53 are mapped to 4 (to 3.5, then 4),
+    # and 4.47 and 4.53 are also mapped to 4 (to 4.5, then 4).
+    #
+    # The weird intermediate step of rounding to one decimal digit only
+    # makes a difference for wheat farms; for the other buildings, we
+    # never get a value where it makes a difference. Hence we call this
+    # transformation `wheat_adjustment`.
+    #
+    # A possible explanation is that the games uses 10 ticks per
+    # second and therefore internally rounds to one decimal digit for
+    # the exact values, and then the further rounding is for display
+    # purposes only.
+    #
+    # In contrast to this, the *efficiency percentages* shown in the
+    # game are truncated, not rounded. Exception: For cow farms, 26 of
+    # the 50 values shown are actually 1% less than we would expect,
+    # but this can be explained by floating point precision issues, as
+    # all of these are exact percentages, and if the game interally gets,
+    # say, 95.999% instead of the correct 96%, this would truncate to 95%.
+
+    # All numbers were verified against the values in the game for the
+    # following buildings:
+    #
+    # 6 tiles: (one type of) quarry
+    # 9 tiles: water well, (one type of) mine, sea water filter
+    # 16 tiles: water pump
+    # 35 tiles (out of 39 available): sand collector
+    # 35 tiles (out of 42 available): apple farm
+    # 50 tiles (out of 71 available): cow farm
+    # 95 tiles (out of 112 available): wheat farm
+
+    # I experimentally confirmed that the production times are
+    # definitely fractional, but I couldn't resolve if there is some
+    # form of rounding to frames or not. The production rate of a 55%
+    # water well was calculated as 19.44s and measured as somewhere
+    # between 19.40s and 19.44s (roughly 19.42s) in an experiment
+    # timing it against a 100% water well running for ~75 minutes on
+    # triple speed.
+
+    multiplier = (1 - tile_fraction) * 4 + 1
+    return base_time * multiplier
+
+
+def print_production_stats(name, max_tiles, base_time, num_produced):
+    print(f"production stats for {name}:")
+    for num_tiles in reversed(range(1, max_tiles + 1)):
+        percent = int(num_tiles / max_tiles * 100)
+        time = production_time(num_tiles / max_tiles, base_time)
+        upm = num_produced * (60 / time)
+        upmt = upm / num_tiles
+        unit = "unit" if num_produced == 1 else "units"
+        tiles_width = len(str(max_tiles))
+        print(f"{num_tiles:{tiles_width}}/{max_tiles} tiles = {percent:3d}%:", end=" ")
+        print(f"{num_produced} {unit} per {time:5.2f}s,", end=" ")
+        print(f"{upm:5.3f} UPM, {upmt:5.3f} UPM/tile")
+        if round(round(time, 1)) != round(time):
+            # I just put this here to verify the point that this rounding step
+            # only makes a difference for wheat farms.
+            # There is no game logic reason why this should be the case, so if this fails
+            # in the future, this does not imply the calculation is wrong.
+            assert name == "wheat farm", name
+
+
+def print_all_production_stats():
+    print_production_stats("water well", 9, 7, 1)
+    print()
+    print_production_stats("quarry", 6, 20, 2)
+    print()
+    print_production_stats("mine", 9, 10, 3)
+    print()
+    print_production_stats("sea water filter", 9, 20, 2)
+    print()
+    print_production_stats("water pump", 16, 5, 3)
+    print()
+    print_production_stats("sand collector", 35, 20, 1)
+    print()
+    print_production_stats("apple farm", 35, 10, 2)
+    print()
+    print_production_stats("cow farm", 50, 15, 2)
+    print()
+    print_production_stats("wheat farm", 95, 10, 2)
+    # For the wheat farm, 8 of the 86 entries don't match what is said
+    # in the game, and this cannot be explained by rounding or
+    # floating point inaccuracy.
+    print()
+
+
 def main():
     SCENARIO_HARBOR_ISLANDS = [
         (2, CITY_CENTER_II),
-        (1, NATIVE_TOWN_CENTER_II),
+        (1, NATIVE_VILLAGE_CENTER_II),
     ]
     SCENARIO_CORAL_CRESCENT = [
         (3, CITY_CENTER_II),
@@ -345,7 +446,11 @@ def main():
     SCENARIO_CORAL_HAVEN = [
         (2, CITY_CENTER_III),
     ]
-    # analyze_house(NATIVE_TOWN_CENTER_II)
+    SCENARIO_PEARL_ISLAND = [
+        (2, CITY_CENTER_II),
+        (2, NATIVE_VILLAGE_CENTER_II),
+    ]
+    # analyze_house(NATIVE_VILLAGE_CENTER_II)
     # analyze_scenario(SCENARIO_HARBOR_ISLANDS)
     # analyze_house(CITY_CENTER_II, filter_coral_crescent)
     # analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
@@ -353,27 +458,10 @@ def main():
     # analyze_scenario(SCENARIO_CORAL_HAVEN, filter_coral_haven, given={"bread"})
     # analyze_build("bread")
     analyze_scenario(
-        SCENARIO_CORAL_HAVEN, filter_coral_haven,
-        given={
-            "stone", "lumber", "coal", "bread", "iron bar", "steel bar",
-            "stone tool", "iron tool", "steel tool", "milk", "cow",
-            "sandwich", "meat", "book", "luxury furniture",
-        })
-    # analyze_build("steel tool", filter_coral_haven,
-    #               given={"lumber", "stone", "iron bar", "steel bar"})
-    # analyze_build("sandwich", filter_coral_haven,
-    #               given={"cow", "bread", "iron tool"})
-    # analyze_build("book", filter_coral_haven,
-    #               given={"steel tool", "iron tool", "cow", "lumber"})
-    # analyze_build("luxury furniture", filter_coral_haven,
-    #               given={"diamond", "stone tool", "iron tool", "cow", "lumber"})
+        SCENARIO_PEARL_ISLAND, #CORAL_HAVEN, filter_coral_haven,
+    )
+    print_all_production_stats()
 
 
 if __name__ == "__main__":
     main()
-
-#     1.528 iron tool maker [exact: 55/36]
-#     1.667 iron smelter [exact: 5/3]
-#     0.741 iron mine [exact: 20/27]
-#     1.042 steel tool maker [exact: 25/24]
-#     1.389 steel smelter [exact: 25/18]
