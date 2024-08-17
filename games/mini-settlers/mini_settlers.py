@@ -464,14 +464,15 @@ def main():
     if False:
         print_production_stats("water well", 9, 7, 1)
 
-    # analyze_build("16 stone tool, 16 steel tool",
-    #               get_buildings_dolphin_islands(),
-    #               given={"apple"})
-    # analyze_build("2 steel tool maker, 8 lumber, 16 apple",
-    #               get_buildings_dolphin_islands(),
-    #               given={"apple"})
+
     analyze_build("3 city center III",
-                 get_buildings_dolphin_islands())
+                  get_buildings_dolphin_islands(),
+                  given={"bread", "cow", "coal",
+                         "stone tool", "juice", "lumber",
+                         "iron tool", "steel tool",
+                         "sandwich", "diamond", "milk",
+                         "book", "luxury furniture",
+                         })
 
 
 if __name__ == "__main__":
