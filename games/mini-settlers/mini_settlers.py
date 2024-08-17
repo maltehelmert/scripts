@@ -146,6 +146,20 @@ def filter_coral_haven(buildings):
             if building.name not in removed]
 
 
+def filter_dolphin_islands(buildings):
+    removed = {
+        "water pump",
+        "sea water filter",
+        "wood factory",
+        "stone mine",
+        "coal quarry",
+        "coal mine",
+        "iron mine",
+        }
+    return [building for building in buildings
+            if building.name not in removed]
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7),
     parse_building("water pump", "1 bread -> 3 water", 5), # alt
@@ -220,6 +234,15 @@ CITY_CENTER_III = CityCenter(
     required_resources=["milk", "sandwich", "book", "luxury furniture"],
     consumption_time_per_resource=60,
     # The game says 60 seconds. It may be worth measuring this.
+)
+
+
+NATIVE_VILLAGE_CENTER_I = CityCenter(
+    name="native town center I",
+    number_of_houses=10,
+    required_resources=["apple", "stone tool"],
+    consumption_time_per_resource=50,
+    # Time is an estimate.
 )
 
 
@@ -448,19 +471,31 @@ def main():
     ]
     SCENARIO_PEARL_ISLAND = [
         (2, CITY_CENTER_II),
-        (2, NATIVE_VILLAGE_CENTER_II),
+        (1, NATIVE_VILLAGE_CENTER_I),
+        (1, NATIVE_VILLAGE_CENTER_II),
     ]
+    SCENARIO_DOLPHIN_ISLANDS = [
+        (3, CITY_CENTER_III),
+    ]
+
+    # print_all_production_stats()
     # analyze_house(NATIVE_VILLAGE_CENTER_II)
-    # analyze_scenario(SCENARIO_HARBOR_ISLANDS)
-    # analyze_house(CITY_CENTER_II, filter_coral_crescent)
-    # analyze_scenario(SCENARIO_CORAL_CRESCENT, filter_coral_crescent)
-    # analyze_build("iron tool", filter_coral_crescent, given={"bread"})
-    # analyze_scenario(SCENARIO_CORAL_HAVEN, filter_coral_haven, given={"bread"})
-    # analyze_build("bread")
     analyze_scenario(
-        SCENARIO_PEARL_ISLAND, #CORAL_HAVEN, filter_coral_haven,
+        SCENARIO_DOLPHIN_ISLANDS,
+        filter_func=filter_dolphin_islands,
+        given={
+            # "coal", "lumber",
+            # "apple", "cow", "bread",
+            # "stone tool", "iron tool", "steel tool"
+        }
     )
-    print_all_production_stats()
+    # analyze_build("coal", filter_func=filter_dolphin_islands)
+    # analyze_build("bread", filter_func=filter_dolphin_islands)
+    # print_production_stats("water well", 9, 7, 1)
+
+    # TODO: Allow making designs with a specific number of resources
+    # produced per minute, such as "20 steel tool" or
+    # "15 steel tool, 10 iron tool, 10 stone tool".
 
 
 if __name__ == "__main__":
