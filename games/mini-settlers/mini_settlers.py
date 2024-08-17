@@ -31,8 +31,16 @@ class F(Fraction):
 class Building:
     name: str
     sources: list
-    targets: list
+    target: list
     duration: int
+
+    def get_cycles_per_minute(self):
+        return F(60, self.duration)
+
+    def get_production_per_minute(self):
+        amount_per_cycle, resource = self.target
+        amount_per_minute = amount_per_cycle * self.get_cycles_per_minute()
+        return amount_per_minute, resource
 
 
 @dataclass
@@ -48,19 +56,14 @@ class CityCenter:
     def get_virtual_resource(self):
         return "needs of " + self.name
 
-    def get_virtual_building_for_house(self):
-        return self.get_virtual_building(num_houses=1)
-
-    def get_virtual_building_for_center(self):
-        return self.get_virtual_building(num_houses=self.number_of_houses)
-
-    def get_virtual_building(self, num_houses):
-        sources = [(num_houses, resource) for resource in self.required_resources]
+    def get_building(self):
+        sources = [(self.number_of_houses, resource)
+                   for resource in self.required_resources]
         duration = self.get_cycle_time()
         return Building(
             name=self.name,
             sources=sources,
-            targets=[(1, self.get_virtual_resource())],
+            target=(1, self.get_virtual_resource()),
             duration=duration,
         )
 
@@ -78,21 +81,24 @@ def parse_ingredients(text):
 
 
 def parse_recipe(text):
-    sources, targets = text.split("->")
+    sources, target = text.split("->")
     sources = parse_ingredients(sources.strip())
-    targets = parse_ingredients(targets.strip())
-    return sources, targets
+    target = parse_ingredient(target.strip())
+    return sources, target
 
 
 def parse_building(name, recipe_text, duration):
-    sources, targets = parse_recipe(recipe_text)
-    return Building(name, sources, targets, duration)
+    sources, target = parse_recipe(recipe_text)
+    return Building(name, sources, target, duration)
 
 
-def filter_preferred(buildings):
-    # Filter our buildings with alt recipes we don't want to use in
-    # our calculations.
-    removed = {
+def filter_buildings(removed):
+    return [building for building in BUILDINGS
+            if building.name not in removed]
+
+
+def get_buildings_default():
+    return filter_buildings({
         "water pump",
         "sea water filter",
         "charcoal maker",
@@ -100,13 +106,30 @@ def filter_preferred(buildings):
         "stone mine",
         "coal mine",
         "iron mine",
-        }
-    return [building for building in buildings
-            if building.name not in removed]
+        })
 
 
-def filter_coral_crescent(buildings):
-    removed = {
+def get_buildings_eden_isle():
+    return get_buildings_default()
+
+
+def get_buildings_crystal_cove():
+    return get_buildings_default()
+
+
+def get_buildings_harbor_islands():
+    return get_buildings_default()
+
+
+def get_buildings_coral_crescent():
+    traders = [
+        parse_building("trader A (apple)", "-> 1 apple", 2),
+        parse_building("trader B (stone -> lumber)", "1 stone -> 1 lumber", 2),
+        parse_building("trader C (stone tool -> cow)", "1 stone tool -> 1 cow", 2),
+        parse_building("trader D (juice -> wheat)", "1 juice -> 1 wheat", 2),
+    ]
+
+    return traders + filter_buildings({
         "water well",
         "water pump",
         "sea water filter",
@@ -116,24 +139,15 @@ def filter_coral_crescent(buildings):
         "lumber camp",
         "forester",
         "wood factory",
-        #
         "charcoal maker",
         "stone mine",
-        }
-    buildings = [building for building in buildings
-                 if building.name not in removed]
-    TRADERS = [
-        parse_building("trader A (apple)", "-> 1 apple", 2),
-        parse_building("trader B (stone -> lumber)", "1 stone -> 1 lumber", 2),
-        parse_building("trader C (stone tool -> cow)", "1 stone tool -> 1 cow", 2),
-        parse_building("trader D (juice -> wheat)", "1 juice -> 1 wheat", 2),
-    ]
-
-    return buildings + TRADERS
+        "coal mine",
+        "iron mine",
+        })
 
 
-def filter_coral_haven(buildings):
-    removed = {
+def get_buildings_coral_haven():
+    return filter_buildings({
         "water pump",
         "sea water filter",
         "charcoal maker",
@@ -141,13 +155,15 @@ def filter_coral_haven(buildings):
         "stone mine",
         "coal mine",
         "iron quarry",
-        }
-    return [building for building in buildings
-            if building.name not in removed]
+        })
 
 
-def filter_dolphin_islands(buildings):
-    removed = {
+def get_buildings_pearl_island():
+    return get_buildings_default()
+
+
+def get_buildings_dolphin_islands():
+    return filter_buildings({
         "water pump",
         "sea water filter",
         "wood factory",
@@ -155,9 +171,7 @@ def filter_dolphin_islands(buildings):
         "coal quarry",
         "coal mine",
         "iron mine",
-        }
-    return [building for building in buildings
-            if building.name not in removed]
+        })
 
 
 BUILDINGS = [
@@ -207,94 +221,87 @@ BUILDINGS = [
     parse_building("glass maker", "1 sand, 1 coal -> 2 glass", 25),
     parse_building("steel smelter", "1 coal, 1 iron bar -> 1 steel bar", 20),
     parse_building("library", "1 leather, 1 paper, 1 steel tool -> 2 book", 25),
+    #
+    CityCenter(
+        name="city center I",
+        number_of_houses=10,
+        required_resources=["water", "apple", "wood furniture"],
+        consumption_time_per_resource=50,
+        # The game says 50 seconds. It may be worth measuring this.
+    ).get_building(),
+    CityCenter(
+        name="city center II",
+        number_of_houses=15,
+        required_resources=["juice", "bread", "paper", "leather furniture"],
+        consumption_time_per_resource=50,
+        # The game says 50 seconds. It may be worth measuring this.
+    ).get_building(),
+    CityCenter(
+        name="city center III",
+        number_of_houses=20,
+        required_resources=["milk", "sandwich", "book", "luxury furniture"],
+        consumption_time_per_resource=60,
+        # The game says 60 seconds. It may be worth measuring this.
+    ).get_building(),
+    CityCenter(
+        name="native village center I",
+        number_of_houses=10,
+        required_resources=["apple", "stone tool"],
+        consumption_time_per_resource=50,
+        # Time is an estimate.
+    ).get_building(),
+    CityCenter(
+        name="native village center II",
+        number_of_houses=15,
+        required_resources=["plank", "iron tool", "leather"],
+        consumption_time_per_resource=55,
+        # I measured 55-60 seconds; the game does not tell us.
+    ).get_building(),
 ]
 
 
-CITY_CENTER_I = CityCenter(
-    name="city center I",
-    number_of_houses=10,
-    required_resources=["water", "apple", "wood furniture"],
-    consumption_time_per_resource=50,
-    # The game says 50 seconds. It may be worth measuring this.
-)
-
-
-CITY_CENTER_II = CityCenter(
-    name="city center II",
-    number_of_houses=15,
-    required_resources=["juice", "bread", "paper", "leather furniture"],
-    consumption_time_per_resource=50,
-    # The game says 50 seconds. It may be worth measuring this.
-)
-
-
-CITY_CENTER_III = CityCenter(
-    name="city center III",
-    number_of_houses=20,
-    required_resources=["milk", "sandwich", "book", "luxury furniture"],
-    consumption_time_per_resource=60,
-    # The game says 60 seconds. It may be worth measuring this.
-)
-
-
-NATIVE_VILLAGE_CENTER_I = CityCenter(
-    name="native town center I",
-    number_of_houses=10,
-    required_resources=["apple", "stone tool"],
-    consumption_time_per_resource=50,
-    # Time is an estimate.
-)
-
-
-NATIVE_VILLAGE_CENTER_II = CityCenter(
-    name="native town center II",
-    number_of_houses=15,
-    required_resources=["plank", "iron tool", "leather"],
-    consumption_time_per_resource=55,
-    # I measured 55-60 seconds; the game does not tell us.
-)
-
-
-def scale_tally(tally, factor):
-    return {key: value * factor for key, value in tally.items()}
-
-
-def add_to_tally(source, target):
+def add_to_tally(target, source):
     for key, value in source.items():
         target[key] += value
 
 
-def get_producers(buildings):
-    producers = {}
+def get_index(buildings):
+    # TODO: Change way this is called, with filters etc.?
+    building_index = {}
+    producer_index = {}
     for building in buildings:
-        assert len(building.targets) == 1
-        target = building.targets[0][1]
-        if target in producers:
-            existing = producers[target]
+        _, resource_produced = building.target
+        if resource_produced in producer_index:
+            existing = producer_index[resource_produced]
             print(f"skipping {building.name} in favour of {existing.name}")
         else:
-            producers[target] = building
-    return producers
+            producer_index[resource_produced] = building
+        building_index[building.name] = building
+    return building_index, producer_index
 
 
-def get_requirements(resource, producers, given):
-    producer = producers[resource]
-    production_time = producer.duration
-    (amount_produced, item_produced), = producer.targets
-    assert item_produced == resource
-    multiplier = F(1, amount_produced)
+def get_requirements(amount, resource, producer_index, given):
     ingredients = defaultdict(int)
     buildings = defaultdict(int)
     if resource in given:
-        ingredients[f"{resource} [given]"] += 1
+        ingredients[f"{resource} [given]"] += amount
     else:
-        ingredients[resource] += 1
-        buildings[producer.name] += multiplier * production_time
-        for amount_needed, ingredient in producer.sources:
-            factor = multiplier * amount_needed
-            rec_ingredients, rec_buildings = get_requirements(ingredient, producers, given)
-            add_to_tally(scale_tally(rec_ingredients, factor), ingredients)
-            add_to_tally(scale_tally(rec_buildings, factor), buildings)
+        ingredients[resource] += amount
+        #
+        producer = producer_index[resource]
+        amount_produced, item_produced = producer.target
+        assert item_produced == resource
+        #
+        num_production_cycles = F(amount, amount_produced)
+        work_needed = producer.duration * num_production_cycles
+        num_buildings = work_needed / 60
+        #
+        buildings[producer.name] += num_buildings
+        for needed_per_cycle, ingredient in producer.sources:
+            needed = num_production_cycles * needed_per_cycle
+            rec_ingredients, rec_buildings = get_requirements(needed, ingredient, producer_index, given)
+            add_to_tally(ingredients, rec_ingredients)
+            add_to_tally(buildings, rec_buildings)
     return ingredients, buildings
 
 
@@ -308,53 +315,38 @@ def print_tally(tally, indent=""):
         print(f"{indent}{amount:8.3f} {element} [exact: {amount.numerator}/{amount.denominator}]")
 
 
-def analyze_scenario(scenario, filter_func=filter_preferred, given=set()):
-    print("analyzing scenario...")
+def get_needs(build, building_index, producer_index):
+    needs_list = []
+    for amount, kind in parse_ingredients(build):
+        if kind in building_index:
+            building = building_index[kind]
+            per_building, resource = building.get_production_per_minute()
+            needs_list.append((amount * per_building, resource))
+        elif kind in producer_index:
+            needs_list.append((amount, kind))
+        else:
+            raise ValueError(kind)
+    return needs_list
+
+
+def analyze_build(build, buildings, given=set()):
+    print(f"analyzing build for {build}...")
     if given:
-        print(f"assuming as given ingredients: {', '.join(sorted(given))}")
-    SECONDS_PER_MINUTE = 60
-    virtual_buildings = [center.get_virtual_building_for_center()
-                         for amount, center in scenario]
-    producers = get_producers(filter_func(BUILDINGS + virtual_buildings))
+        print(f"assuming as given resources: {', '.join(sorted(given))}")
+
+    building_index, producer_index = get_index(buildings)
+    needs_list = get_needs(build, building_index, producer_index)
+
     total_ingredients = defaultdict(int)
     total_buildings = defaultdict(int)
-    for amount, center in scenario:
-        need = center.get_virtual_resource()
-        ingredients, buildings = get_requirements(need, producers, given)
-        ingredients_multiplier = amount * F(SECONDS_PER_MINUTE, center.get_cycle_time())
-        buildings_multiplier = amount * F(1, center.get_cycle_time())
-        add_to_tally(scale_tally(ingredients, ingredients_multiplier), total_ingredients)
-        add_to_tally(scale_tally(buildings, buildings_multiplier), total_buildings)
+    for amount, need in needs_list:
+        ingredient_tally, building_tally = get_requirements(amount, need, producer_index, given)
+        add_to_tally(total_ingredients, ingredient_tally)
+        add_to_tally(total_buildings, building_tally)
     print("ingredients production per minute:")
     print_tally(total_ingredients, "  ")
     print("buildings needed:")
     print_tally(total_buildings, "  ")
-
-
-def analyze_house(center, filter_func=filter_preferred, given=set()):
-    print(f"analyzing 1 house of {center.name}...")
-    if given:
-        print(f"assuming as given ingredients: {', '.join(sorted(given))}")
-    virtual_buildings = [center.get_virtual_building_for_house()]
-    producers = get_producers(filter_func(BUILDINGS + virtual_buildings))
-    need = center.get_virtual_resource()
-    ingredients, buildings = get_requirements(need, producers, given)
-    print("ingredients needed per house per cycle:")
-    print_tally(ingredients, "  ")
-    print("building production seconds needed per house per cycle:")
-    print_tally(buildings, "  ")
-
-
-def analyze_build(need, filter_func=filter_preferred, given=set()):
-    print(f"analyzing build for {need}...")
-    if given:
-        print(f"assuming as given ingredients: {', '.join(sorted(given))}")
-    producers = get_producers(filter_func(BUILDINGS))
-    ingredients, buildings = get_requirements(need, producers, given)
-    print("ingredients needed per resource produced:")
-    print_tally(ingredients, "  ")
-    print("building production seconds needed per resource produced:")
-    print_tally(buildings, "  ")
 
 
 def production_time(tile_fraction, base_time):
@@ -452,50 +444,34 @@ def print_all_production_stats():
     print_production_stats("cow farm", 50, 15, 2)
     print()
     print_production_stats("wheat farm", 95, 10, 2)
-    # For the wheat farm, 8 of the 86 entries don't match what is said
-    # in the game, and this cannot be explained by rounding or
-    # floating point inaccuracy.
     print()
 
 
 def main():
-    SCENARIO_HARBOR_ISLANDS = [
-        (2, CITY_CENTER_II),
-        (1, NATIVE_VILLAGE_CENTER_II),
-    ]
-    SCENARIO_CORAL_CRESCENT = [
-        (3, CITY_CENTER_II),
-    ]
-    SCENARIO_CORAL_HAVEN = [
-        (2, CITY_CENTER_III),
-    ]
-    SCENARIO_PEARL_ISLAND = [
-        (2, CITY_CENTER_II),
-        (1, NATIVE_VILLAGE_CENTER_I),
-        (1, NATIVE_VILLAGE_CENTER_II),
-    ]
-    SCENARIO_DOLPHIN_ISLANDS = [
-        (3, CITY_CENTER_III),
-    ]
+    if False:
+        analyze_build("1 native village center I", get_buildings_eden_isle())
+        analyze_build("2 city center II", get_buildings_crystal_cove())
+        analyze_build("2 city center II, 1 native village center II", get_buildings_harbor_islands())
+        analyze_build("3 city center II", get_buildings_coral_crescent())
+        analyze_build("2 city center III", get_buildings_coral_haven())
+        analyze_build("2 city center II, 1 native village center I, 1 native village center II",
+                      get_buildings_pearl_island())
+        analyze_build("3 city center III", get_buildings_dolphin_islands())
 
-    # print_all_production_stats()
-    # analyze_house(NATIVE_VILLAGE_CENTER_II)
-    analyze_scenario(
-        SCENARIO_DOLPHIN_ISLANDS,
-        filter_func=filter_dolphin_islands,
-        given={
-            # "coal", "lumber",
-            # "apple", "cow", "bread",
-            # "stone tool", "iron tool", "steel tool"
-        }
-    )
-    # analyze_build("coal", filter_func=filter_dolphin_islands)
-    # analyze_build("bread", filter_func=filter_dolphin_islands)
-    # print_production_stats("water well", 9, 7, 1)
+    if False:
+        print_all_production_stats()
 
-    # TODO: Allow making designs with a specific number of resources
-    # produced per minute, such as "20 steel tool" or
-    # "15 steel tool, 10 iron tool, 10 stone tool".
+    if False:
+        print_production_stats("water well", 9, 7, 1)
+
+    # analyze_build("16 stone tool, 16 steel tool",
+    #               get_buildings_dolphin_islands(),
+    #               given={"apple"})
+    # analyze_build("2 steel tool maker, 8 lumber, 16 apple",
+    #               get_buildings_dolphin_islands(),
+    #               given={"apple"})
+    analyze_build("3 city center III",
+                 get_buildings_dolphin_islands())
 
 
 if __name__ == "__main__":
