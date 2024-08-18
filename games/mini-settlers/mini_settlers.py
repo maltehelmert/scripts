@@ -178,6 +178,10 @@ def get_buildings_bean_islands():
     return get_buildings_default()
 
 
+def get_buildings_emerald_islands():
+    return get_buildings_default()
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7),
     parse_building("water pump", "1 bread -> 3 water", 5),
@@ -465,6 +469,7 @@ def main():
                       get_buildings_pearl_island())
         analyze_build("3 city center III", get_buildings_dolphin_islands())
         analyze_build("3 city center III, 1 native village center III", get_buildings_bean_islands())
+        analyze_build("2 city center III, 1 native village center III", get_buildings_emerald_islands())
 
     if False:
         print_all_production_stats()
@@ -473,8 +478,8 @@ def main():
         print_production_stats("water well", 9, 7, 1)
 
 
-    analyze_build("3 city center III, 1 native village center III",
-                  get_buildings_bean_islands())
+    analyze_build("2 city center III, 1 native village center III",
+                  get_buildings_emerald_islands())
 
 
 if __name__ == "__main__":
