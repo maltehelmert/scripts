@@ -6,6 +6,47 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 
+"""The fractional production time formula has been determined
+experimentally based on the production times shown in the game.
+
+The times shown in the game are whole numbers instead of the
+fractional values shown here. The computed numbers match the numbers
+shown in the game if we mangle the fractional values as follows:
+
+- First, round to one decimal digit, breaking ties by rounding up.
+- Then, round to the nearest integer, breaking ties in favour of even
+  numbers.
+
+In Python, this corresponds to x -> round(round(x, 1)).
+
+For example, 3.47 and 3.53 are mapped to 4 (to 3.5, then 4),
+and 4.47 and 4.53 are also mapped to 4 (to 4.5, then 4).
+
+The weird intermediate step of rounding to one decimal digit only
+makes a difference for wheat farms; for the other buildings, we never
+get a value where it makes a difference. Hence we call this
+transformation `wheat_adjustment`.
+
+A possible explanation is that the games uses 10 ticks per second and
+therefore internally rounds to one decimal digit for the exact values,
+and then the further rounding is for display purposes only.
+
+In contrast to this, the *efficiency percentages* shown in the game
+are truncated, not rounded. Exception: For cow farms, 26 of the 50
+values shown are actually 1% less than we would expect, but this can
+be explained by floating point precision issues, as all of these are
+exact percentages, and if the game interally gets, say, 95.999%
+instead of the correct 96%, this would truncate to 95%.
+
+I experimentally confirmed that the production times are definitely
+fractional, but I couldn't resolve if there is some form of rounding
+to frames or not. The production rate of a 55% water well was
+calculated as 19.44s and measured as somewhere between 19.40s and
+19.44s (roughly 19.42s) in an experiment timing it against a 100%
+water well running for ~75 minutes on triple speed.
+"""
+
+
 class F(Fraction):
     def __format__(self, *args, **kwargs):
         return format(float(self), *args, **kwargs)
@@ -34,6 +75,12 @@ class Building:
     target: list
     duration: int
 
+    def get_amount_produced(self):
+        return self.target[0]
+
+    def get_resource_produced(self):
+        return self.target[1]
+
     def get_cycles_per_minute(self):
         return F(60, self.duration)
 
@@ -41,6 +88,45 @@ class Building:
         amount_per_cycle, resource = self.target
         amount_per_minute = amount_per_cycle * self.get_cycles_per_minute()
         return amount_per_minute, resource
+
+
+@dataclass
+class HarvestingBuilding(Building):
+    max_tiles: int
+
+    def get_fractional_production_time(self, num_tiles):
+        assert 1 <= num_tiles <= self.max_tiles
+        fraction = F(num_tiles, self.max_tiles)
+        multiplier = 1 + 4 * (1 - fraction)
+        return self.duration * multiplier
+
+    def get_percent(self, num_tiles):
+        return int(num_tiles / self.max_tiles * 100)
+
+    def get_fractional_production_per_minute(self, num_tiles):
+        time = self.get_fractional_production_time(num_tiles)
+        return self.get_amount_produced() * 60 / time
+
+    def print_production_stats(self):
+        print(f"production stats for {self.name}:")
+        for num_tiles in reversed(range(1, self.max_tiles + 1)):
+            tiles_width = len(str(self.max_tiles))
+            percent = self.get_percent(num_tiles)
+            print(f"{num_tiles:{tiles_width}}/{self.max_tiles} tiles = {percent:3d}%:", end=" ")
+            num_produced, unit = self.target
+            time = self.get_fractional_production_time(num_tiles)
+            print(f"{num_produced} {unit} per {time:5.2f}s,", end=" ")
+            upm = self.get_fractional_production_per_minute(num_tiles)
+            upmt = upm / num_tiles
+            print(f"{upm:5.3f} UPM, {upmt:5.3f} UPM/tile")
+            if round(round(time, 1)) != round(time):
+                # I put this here to verify the point that this
+                # rounding step only makes a difference for wheat
+                # farms. There is no game logic reason why this should
+                # be the case, so if this fails in the future (for a
+                # new or modified building or after a formula change),
+                # this does not imply the calculation is wrong.
+                assert self.name == "wheat farm", self_name
 
 
 @dataclass
@@ -87,9 +173,12 @@ def parse_recipe(text):
     return sources, target
 
 
-def parse_building(name, recipe_text, duration):
+def parse_building(name, recipe_text, duration, max_tiles=None):
     sources, target = parse_recipe(recipe_text)
-    return Building(name, sources, target, duration)
+    if max_tiles is None:
+        return Building(name, sources, target, duration)
+    else:
+        return HarvestingBuilding(name, sources, target, duration, max_tiles)
 
 
 def filter_buildings(removed):
@@ -183,15 +272,15 @@ def get_buildings_emerald_islands():
 
 
 BUILDINGS = [
-    parse_building("water well", "-> 1 water", 7),
-    parse_building("water pump", "1 bread -> 3 water", 5),
-    parse_building("sea water filter", "1 coal -> 2 water", 20),
+    parse_building("water well", "-> 1 water", 7, max_tiles=9),
+    parse_building("water pump", "1 bread -> 3 water", 5, max_tiles=16),
+    parse_building("sea water filter", "1 coal -> 2 water", 20, max_tiles=9),
 
-    parse_building("apple farm", "1 water -> 2 apple", 10),
+    parse_building("apple farm", "1 water -> 2 apple", 10, max_tiles=35),
     parse_building("juice maker", "1 plank, 1 apple -> 2 juice", 15),
-    parse_building("wheat farm", "1 water -> 2 wheat", 10),
+    parse_building("wheat farm", "1 water -> 2 wheat", 10, max_tiles=95),
     parse_building("bakery", "2 wheat, 1 coal -> 2 bread", 20),
-    parse_building("cow farm", "1 water, 1 wheat -> 2 cow", 15),
+    parse_building("cow farm", "1 water, 1 wheat -> 2 cow", 15, max_tiles=50),
     parse_building("milk factory", "1 cow, 1 glass -> 2 milk", 20),
     parse_building("butcher", "1 cow, 1 iron tool -> 2 meat", 20),
     parse_building("restaurant", "1 bread, 1 meat -> 2 sandwich", 20),
@@ -204,14 +293,14 @@ BUILDINGS = [
     parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20),
     parse_building("wood beam workshop", "1 iron tool, 1 plank -> 2 wood beam", 40),
 
-    parse_building("stone quarry", "1 apple -> 2 stone", 20),
-    parse_building("stone mine", "1 bread -> 3 stone", 10),
-    parse_building("coal quarry", "1 apple -> 2 coal", 20),
-    parse_building("coal mine", "1 bread -> 3 coal", 10),
-    parse_building("iron quarry", "1 bread -> 2 iron ore", 20),
-    parse_building("iron mine", "1 bread -> 3 iron ore", 10),
-    parse_building("sand collector", "1 juice -> 1 sand", 20),
-    parse_building("diamond mine", "1 meat, 1 steel tool -> 3 diamond", 10),
+    parse_building("stone quarry", "1 apple -> 2 stone", 20, max_tiles=6),
+    parse_building("stone mine", "1 bread -> 3 stone", 10, max_tiles=9),
+    parse_building("coal quarry", "1 apple -> 2 coal", 20, max_tiles=6),
+    parse_building("coal mine", "1 bread -> 3 coal", 10, max_tiles=9),
+    parse_building("iron quarry", "1 bread -> 2 iron ore", 20, max_tiles=6),
+    parse_building("iron mine", "1 bread -> 3 iron ore", 10, max_tiles=9),
+    parse_building("sand collector", "1 juice -> 1 sand", 20, max_tiles=35),
+    parse_building("diamond mine", "1 meat, 1 steel tool -> 3 diamond", 10, max_tiles=9),
 
     parse_building("stone tool maker", "1 stone, 1 wood -> 2 stone tool", 7),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
@@ -357,105 +446,46 @@ def analyze_build(build, buildings, given=set()):
     print_tally(total_buildings, "  ")
 
 
-def production_time(tile_fraction, base_time):
-    """This formula has been determined experimentally based on the
-    production times shown in the game.
-
-    The times shown in the game are whole numbers instead of the
-    fractional values shown here. The computed numbers match the numbers
-    shown in the game if we mangle the fractional values as follows:
-
-    - First, round to one decimal digit.
-    - Then, round to the nearest integer, breaking ties in favour
-      of even numbers.
-
-    In Python, this corresponds to x -> round(round(x, 1)).
-
-    For example, 3.47 and 3.53 are mapped to 4 (to 3.5, then 4),
-    and 4.47 and 4.53 are also mapped to 4 (to 4.5, then 4).
-
-    The weird intermediate step of rounding to one decimal digit only
-    makes a difference for wheat farms; for the other buildings, we
-    never get a value where it makes a difference. Hence we call this
-    transformation `wheat_adjustment`.
-
-    A possible explanation is that the games uses 10 ticks per
-    second and therefore internally rounds to one decimal digit for
-    the exact values, and then the further rounding is for display
-    purposes only.
-
-    In contrast to this, the *efficiency percentages* shown in the
-    game are truncated, not rounded. Exception: For cow farms, 26 of
-    the 50 values shown are actually 1% less than we would expect,
-    but this can be explained by floating point precision issues, as
-    all of these are exact percentages, and if the game interally gets,
-    say, 95.999% instead of the correct 96%, this would truncate to 95%.
-
-    All numbers were verified against the values in the game for the
-    following buildings:
-
-    6 tiles: (one type of) quarry
-    9 tiles: water well, (one type of) mine, sea water filter
-    16 tiles: water pump
-    35 tiles (out of 39 available): sand collector
-    35 tiles (out of 42 available): apple farm
-    50 tiles (out of 71 available): cow farm
-    95 tiles (out of 112 available): wheat farm
-
-    I experimentally confirmed that the production times are
-    definitely fractional, but I couldn't resolve if there is some
-    form of rounding to frames or not. The production rate of a 55%
-    water well was calculated as 19.44s and measured as somewhere
-    between 19.40s and 19.44s (roughly 19.42s) in an experiment
-    timing it against a 100% water well running for ~75 minutes on
-    triple speed.
-    """
-
-    multiplier = (1 - tile_fraction) * 4 + 1
-    return base_time * multiplier
+def get_building(name):
+    for building in BUILDINGS:
+        if building.name == name:
+            return building
+    raise ValueError(name)
 
 
-def print_production_stats(name, max_tiles, base_time, num_produced):
-    print(f"production stats for {name}:")
-    for num_tiles in reversed(range(1, max_tiles + 1)):
-        percent = int(num_tiles / max_tiles * 100)
-        time = production_time(num_tiles / max_tiles, base_time)
-        upm = num_produced * (60 / time)
-        upmt = upm / num_tiles
-        unit = "unit" if num_produced == 1 else "units"
-        tiles_width = len(str(max_tiles))
-        print(f"{num_tiles:{tiles_width}}/{max_tiles} tiles = {percent:3d}%:", end=" ")
-        print(f"{num_produced} {unit} per {time:5.2f}s,", end=" ")
-        print(f"{upm:5.3f} UPM, {upmt:5.3f} UPM/tile")
-        if round(round(time, 1)) != round(time):
-            # I put this here to verify the point that this rounding
-            # step only makes a difference for wheat farms. There is
-            # no game logic reason why this should be the case, so if
-            # this fails in the future (for a new or modified building
-            # or after a formula change), this does not imply the
-            # calculation is wrong.
-            assert name == "wheat farm", name
+def print_production_stats(building_name):
+    get_building(building_name).print_production_stats()
 
 
 def print_all_production_stats():
-    print_production_stats("water well", 9, 7, 1)
+    buildings = [
+        "water well", "water pump", "sea water filter",
+        "apple farm", "wheat farm", "cow farm",
+        "coal quarry", "coal mine", "sand collector"
+    ]
+    for building in buildings:
+        print_production_stats(building)
+        print()
+
+
+def print_total_upm(building_name, *args, tag=None):
+    assert args
+    building = get_building(building_name)
+    if tag:
+        tag_text = f" ({tag})"
+    else:
+        tag_text = ""
+    print(f"production for {building.name}{tag_text}:")
+    total = 0
+    for index, num_tiles in enumerate(args):
+        if index != 0:
+            print(" + ", end="")
+        upm = building.get_fractional_production_per_minute(num_tiles)
+        percent = building.get_percent(num_tiles)
+        print(f"{upm:.2f} [{percent}%]", end="")
+        total += upm
     print()
-    print_production_stats("quarry", 6, 20, 2)
-    print()
-    print_production_stats("mine", 9, 10, 3)
-    print()
-    print_production_stats("sea water filter", 9, 20, 2)
-    print()
-    print_production_stats("water pump", 16, 5, 3)
-    print()
-    print_production_stats("sand collector", 35, 20, 1)
-    print()
-    print_production_stats("apple farm", 35, 10, 2)
-    print()
-    print_production_stats("cow farm", 50, 15, 2)
-    print()
-    print_production_stats("wheat farm", 95, 10, 2)
-    print()
+    print(f"total: {total:.2f}")
 
 
 def main():
@@ -475,11 +505,20 @@ def main():
         print_all_production_stats()
 
     if False:
-        print_production_stats("water well", 9, 7, 1)
+        print_production_stats("water well")
 
+    if True:
+        print_total_upm("water well", 9, 8, 5, 3, 1, 1, tag="North Island"),
+        print()
+        print_total_upm("water well", 9, 8, 6, 5, tag="West Island")
+        print()
+        print_total_upm("water well", 9, 9, 5, 5, 1, tag="South Island")
+        print()
 
-    analyze_build("2 city center III, 1 native village center III",
-                  get_buildings_emerald_islands())
+    if True:
+        analyze_build("2 city center III, 1 native village center III",
+                      get_buildings_emerald_islands())
+
 
 
 if __name__ == "__main__":
