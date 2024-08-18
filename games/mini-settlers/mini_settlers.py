@@ -174,11 +174,15 @@ def get_buildings_dolphin_islands():
         })
 
 
+def get_buildings_bean_islands():
+    return get_buildings_default()
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7),
-    parse_building("water pump", "1 bread -> 3 water", 5), # alt
-    parse_building("sea water filter", "1 coal -> 2 water", 20), # alt
-    #
+    parse_building("water pump", "1 bread -> 3 water", 5),
+    parse_building("sea water filter", "1 coal -> 2 water", 20),
+
     parse_building("apple farm", "1 water -> 2 apple", 10),
     parse_building("juice maker", "1 plank, 1 apple -> 2 juice", 15),
     parse_building("wheat farm", "1 water -> 2 wheat", 10),
@@ -187,32 +191,32 @@ BUILDINGS = [
     parse_building("milk factory", "1 cow, 1 glass -> 2 milk", 20),
     parse_building("butcher", "1 cow, 1 iron tool -> 2 meat", 20),
     parse_building("restaurant", "1 bread, 1 meat -> 2 sandwich", 20),
-    #
+
     parse_building("lumber camp", "1 apple, 1 tree -> 1 lumber", 15),
     parse_building("saw mill", "1 lumber -> 2 wood", 10),
     parse_building("forester", "1 water -> 1 tree", 10),
     parse_building("carpenter workshop", "1 wood, 1 stone tool -> 2 plank", 25),
-    parse_building("charcoal maker", "1 apple, 1 lumber -> 2 coal", 15), # alt
-    parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20), # alt
+    parse_building("charcoal maker", "1 apple, 1 lumber -> 2 coal", 15),
+    parse_building("wood factory", "1 bread, 1 tree -> 2 wood", 20),
     parse_building("wood beam workshop", "1 iron tool, 1 plank -> 2 wood beam", 40),
-    #
+
     parse_building("stone quarry", "1 apple -> 2 stone", 20),
-    parse_building("stone mine", "1 bread -> 3 stone", 10), # alt
+    parse_building("stone mine", "1 bread -> 3 stone", 10),
     parse_building("coal quarry", "1 apple -> 2 coal", 20),
-    parse_building("coal mine", "1 bread -> 3 coal", 10), # alt
+    parse_building("coal mine", "1 bread -> 3 coal", 10),
     parse_building("iron quarry", "1 bread -> 2 iron ore", 20),
-    parse_building("iron mine", "1 bread -> 3 iron ore", 10), # alt
+    parse_building("iron mine", "1 bread -> 3 iron ore", 10),
     parse_building("sand collector", "1 juice -> 1 sand", 20),
     parse_building("diamond mine", "1 meat, 1 steel tool -> 3 diamond", 10),
-    #
+
     parse_building("stone tool maker", "1 stone, 1 wood -> 2 stone tool", 7),
     parse_building("iron tool maker", "1 iron bar, 1 stone tool -> 2 iron tool", 10),
     parse_building("steel tool maker", "1 steel bar, 1 iron tool -> 2 steel tool", 15),
-    #
+
     parse_building("wood furniture maker", "1 lumber, 1 stone tool -> 2 wood furniture", 15),
     parse_building("leather furniture maker", "1 leather, 1 wood furniture -> 1 leather furniture", 15),
     parse_building("luxury furniture maker", "1 diamond, 1 leather furniture -> 1 luxury furniture", 25),
-    #
+
     parse_building("stone blocker", "1 stone, 1 stone tool -> 2 stone block", 25),
     parse_building("stone masonry", "1 iron tool, 1 stone block -> 2 stone tile", 40),
     parse_building("iron smelter", "1 coal, 2 iron ore -> 2 iron bar", 15),
@@ -221,41 +225,42 @@ BUILDINGS = [
     parse_building("glass maker", "1 sand, 1 coal -> 2 glass", 25),
     parse_building("steel smelter", "1 coal, 1 iron bar -> 1 steel bar", 20),
     parse_building("library", "1 leather, 1 paper, 1 steel tool -> 2 book", 25),
-    #
+
     CityCenter(
         name="city center I",
         number_of_houses=10,
         required_resources=["water", "apple", "wood furniture"],
         consumption_time_per_resource=50,
-        # The game says 50 seconds. It may be worth measuring this.
     ).get_building(),
     CityCenter(
         name="city center II",
         number_of_houses=15,
         required_resources=["juice", "bread", "paper", "leather furniture"],
         consumption_time_per_resource=50,
-        # The game says 50 seconds. It may be worth measuring this.
     ).get_building(),
     CityCenter(
         name="city center III",
         number_of_houses=20,
         required_resources=["milk", "sandwich", "book", "luxury furniture"],
         consumption_time_per_resource=60,
-        # The game says 60 seconds. It may be worth measuring this.
     ).get_building(),
     CityCenter(
         name="native village center I",
         number_of_houses=10,
         required_resources=["apple", "stone tool"],
         consumption_time_per_resource=50,
-        # Time is an estimate.
     ).get_building(),
     CityCenter(
         name="native village center II",
         number_of_houses=15,
         required_resources=["plank", "iron tool", "leather"],
         consumption_time_per_resource=55,
-        # I measured 55-60 seconds; the game does not tell us.
+    ).get_building(),
+    CityCenter(
+        name="native village center III",
+        number_of_houses=20,
+        required_resources=["glass", "meat", "steel tool"],
+        consumption_time_per_resource=60,
     ).get_building(),
 ]
 
@@ -266,7 +271,6 @@ def add_to_tally(target, source):
 
 
 def get_index(buildings):
-    # TODO: Change way this is called, with filters etc.?
     building_index = {}
     producer_index = {}
     for building in buildings:
@@ -287,15 +291,15 @@ def get_requirements(amount, resource, producer_index, given):
         ingredients[f"{resource} [given]"] += amount
     else:
         ingredients[resource] += amount
-        #
+
         producer = producer_index[resource]
         amount_produced, item_produced = producer.target
         assert item_produced == resource
-        #
+
         num_production_cycles = F(amount, amount_produced)
         work_needed = producer.duration * num_production_cycles
         num_buildings = work_needed / 60
-        #
+
         buildings[producer.name] += num_buildings
         for needed_per_cycle, ingredient in producer.sources:
             needed = num_production_cycles * needed_per_cycle
@@ -311,7 +315,7 @@ def print_buildings():
 
 
 def print_tally(tally, indent=""):
-    for element, amount in tally.items():
+    for element, amount in sorted(tally.items(), key=lambda pair: -pair[1]):
         print(f"{indent}{amount:8.3f} {element} [exact: {amount.numerator}/{amount.denominator}]")
 
 
@@ -350,57 +354,58 @@ def analyze_build(build, buildings, given=set()):
 
 
 def production_time(tile_fraction, base_time):
-    # This multiplier has been determined empirically based on the
-    # production times shown in the game.
+    """This formula has been determined experimentally based on the
+    production times shown in the game.
 
-    # The times shown in the game are whole numbers instead of the
-    # fractional values shown here. The computed numbers match the numbers
-    # shown in the game if we mangle the fractional values as follows:
-    #
-    # - First, round to one decimal digit.
-    # - Then, round to the nearest integer, breaking ties in favour
-    #   of even numbers.
-    #
-    # In Python, this corresponts to x -> round(round(x, 1)).
-    #
-    # For example, 3.47 and 3.53 are mapped to 4 (to 3.5, then 4),
-    # and 4.47 and 4.53 are also mapped to 4 (to 4.5, then 4).
-    #
-    # The weird intermediate step of rounding to one decimal digit only
-    # makes a difference for wheat farms; for the other buildings, we
-    # never get a value where it makes a difference. Hence we call this
-    # transformation `wheat_adjustment`.
-    #
-    # A possible explanation is that the games uses 10 ticks per
-    # second and therefore internally rounds to one decimal digit for
-    # the exact values, and then the further rounding is for display
-    # purposes only.
-    #
-    # In contrast to this, the *efficiency percentages* shown in the
-    # game are truncated, not rounded. Exception: For cow farms, 26 of
-    # the 50 values shown are actually 1% less than we would expect,
-    # but this can be explained by floating point precision issues, as
-    # all of these are exact percentages, and if the game interally gets,
-    # say, 95.999% instead of the correct 96%, this would truncate to 95%.
+    The times shown in the game are whole numbers instead of the
+    fractional values shown here. The computed numbers match the numbers
+    shown in the game if we mangle the fractional values as follows:
 
-    # All numbers were verified against the values in the game for the
-    # following buildings:
-    #
-    # 6 tiles: (one type of) quarry
-    # 9 tiles: water well, (one type of) mine, sea water filter
-    # 16 tiles: water pump
-    # 35 tiles (out of 39 available): sand collector
-    # 35 tiles (out of 42 available): apple farm
-    # 50 tiles (out of 71 available): cow farm
-    # 95 tiles (out of 112 available): wheat farm
+    - First, round to one decimal digit.
+    - Then, round to the nearest integer, breaking ties in favour
+      of even numbers.
 
-    # I experimentally confirmed that the production times are
-    # definitely fractional, but I couldn't resolve if there is some
-    # form of rounding to frames or not. The production rate of a 55%
-    # water well was calculated as 19.44s and measured as somewhere
-    # between 19.40s and 19.44s (roughly 19.42s) in an experiment
-    # timing it against a 100% water well running for ~75 minutes on
-    # triple speed.
+    In Python, this corresponds to x -> round(round(x, 1)).
+
+    For example, 3.47 and 3.53 are mapped to 4 (to 3.5, then 4),
+    and 4.47 and 4.53 are also mapped to 4 (to 4.5, then 4).
+
+    The weird intermediate step of rounding to one decimal digit only
+    makes a difference for wheat farms; for the other buildings, we
+    never get a value where it makes a difference. Hence we call this
+    transformation `wheat_adjustment`.
+
+    A possible explanation is that the games uses 10 ticks per
+    second and therefore internally rounds to one decimal digit for
+    the exact values, and then the further rounding is for display
+    purposes only.
+
+    In contrast to this, the *efficiency percentages* shown in the
+    game are truncated, not rounded. Exception: For cow farms, 26 of
+    the 50 values shown are actually 1% less than we would expect,
+    but this can be explained by floating point precision issues, as
+    all of these are exact percentages, and if the game interally gets,
+    say, 95.999% instead of the correct 96%, this would truncate to 95%.
+
+    All numbers were verified against the values in the game for the
+    following buildings:
+
+    6 tiles: (one type of) quarry
+    9 tiles: water well, (one type of) mine, sea water filter
+    16 tiles: water pump
+    35 tiles (out of 39 available): sand collector
+    35 tiles (out of 42 available): apple farm
+    50 tiles (out of 71 available): cow farm
+    95 tiles (out of 112 available): wheat farm
+
+    I experimentally confirmed that the production times are
+    definitely fractional, but I couldn't resolve if there is some
+    form of rounding to frames or not. The production rate of a 55%
+    water well was calculated as 19.44s and measured as somewhere
+    between 19.40s and 19.44s (roughly 19.42s) in an experiment
+    timing it against a 100% water well running for ~75 minutes on
+    triple speed.
+    """
 
     multiplier = (1 - tile_fraction) * 4 + 1
     return base_time * multiplier
@@ -419,10 +424,12 @@ def print_production_stats(name, max_tiles, base_time, num_produced):
         print(f"{num_produced} {unit} per {time:5.2f}s,", end=" ")
         print(f"{upm:5.3f} UPM, {upmt:5.3f} UPM/tile")
         if round(round(time, 1)) != round(time):
-            # I just put this here to verify the point that this rounding step
-            # only makes a difference for wheat farms.
-            # There is no game logic reason why this should be the case, so if this fails
-            # in the future, this does not imply the calculation is wrong.
+            # I put this here to verify the point that this rounding
+            # step only makes a difference for wheat farms. There is
+            # no game logic reason why this should be the case, so if
+            # this fails in the future (for a new or modified building
+            # or after a formula change), this does not imply the
+            # calculation is wrong.
             assert name == "wheat farm", name
 
 
@@ -457,6 +464,7 @@ def main():
         analyze_build("2 city center II, 1 native village center I, 1 native village center II",
                       get_buildings_pearl_island())
         analyze_build("3 city center III", get_buildings_dolphin_islands())
+        analyze_build("3 city center III, 1 native village center III", get_buildings_bean_islands())
 
     if False:
         print_all_production_stats()
@@ -465,14 +473,8 @@ def main():
         print_production_stats("water well", 9, 7, 1)
 
 
-    analyze_build("3 city center III",
-                  get_buildings_dolphin_islands(),
-                  given={"bread", "cow", "coal",
-                         "stone tool", "juice", "lumber",
-                         "iron tool", "steel tool",
-                         "sandwich", "diamond", "milk",
-                         "book", "luxury furniture",
-                         })
+    analyze_build("3 city center III, 1 native village center III",
+                  get_buildings_bean_islands())
 
 
 if __name__ == "__main__":
