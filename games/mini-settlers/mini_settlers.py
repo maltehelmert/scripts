@@ -105,7 +105,7 @@ def get_buildings_default():
         "wood factory",
         "stone mine",
         "coal mine",
-        "iron mine",
+        "iron quarry",
         })
 
 
