@@ -508,7 +508,7 @@ def main():
         print_production_stats("water well")
 
     if True:
-        print_total_upm("water well", 9, 8, 5, 3, 1, 1, tag="North Island"),
+        print_total_upm("water well", 9, 8, 5, 3, 1, 1, tag="North Island")
         print()
         print_total_upm("water well", 9, 8, 6, 5, tag="West Island")
         print()
@@ -518,7 +518,6 @@ def main():
     if True:
         analyze_build("2 city center III, 1 native village center III",
                       get_buildings_emerald_islands())
-
 
 
 if __name__ == "__main__":
