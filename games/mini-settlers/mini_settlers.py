@@ -271,6 +271,10 @@ def get_buildings_emerald_islands():
     return get_buildings_default()
 
 
+def get_buildings_peaks_island():
+    return get_buildings_default()
+
+
 BUILDINGS = [
     parse_building("water well", "-> 1 water", 7, max_tiles=9),
     parse_building("water pump", "1 bread -> 3 water", 5, max_tiles=16),
@@ -500,6 +504,7 @@ def main():
         analyze_build("3 city center III", get_buildings_dolphin_islands())
         analyze_build("3 city center III, 1 native village center III", get_buildings_bean_islands())
         analyze_build("2 city center III, 1 native village center III", get_buildings_emerald_islands())
+        analyze_build("1 city center I, 1 city center II, 1 city center III", get_buildings_peaks_island())
 
     if False:
         print_all_production_stats()
@@ -507,17 +512,18 @@ def main():
     if False:
         print_production_stats("water well")
 
-    if True:
-        print_total_upm("water well", 9, 8, 5, 3, 1, 1, tag="North Island")
+    if False:
+        print_total_upm("water well", 8, 5, 1, 1, 1, tag="North Lake")
         print()
-        print_total_upm("water well", 9, 8, 6, 5, tag="West Island")
+        print_total_upm("water well", 9, 6, 3, 2, 1, tag="Center Lake")
         print()
-        print_total_upm("water well", 9, 9, 5, 5, 1, tag="South Island")
+        print_total_upm("water well", 9, 9, 9, 5, 3, 3, 2, tag="South Lake")
         print()
 
     if True:
-        analyze_build("2 city center III, 1 native village center III",
-                      get_buildings_emerald_islands())
+        analyze_build("1 city center I, 1 city center II, 1 city center III",
+                      get_buildings_peaks_island(),
+                      given={})
 
 
 if __name__ == "__main__":
