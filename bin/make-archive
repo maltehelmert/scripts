@@ -1,0 +1,85 @@
+#! /bin/bash
+
+## $ make-archive <SOURCE_DIR> <ARCHIVE_IMG>
+##
+## Create an encrypted LUKS image from a directory.
+##
+## Example:
+## make-archive mystuff mystuff.img
+##
+## The resulting image can be mounted to /mnt with
+##
+## $ mount-archive mystuff.img
+##
+## and then unmounted with
+##
+## $ unmount-archive
+
+## Requires root rights. The script doesn't need to be called as root,
+## but uses sudo itself.
+##
+## We first make a squashfs image out of <SOURCE_DIR> and then turn
+## that into an encrypted LUKS image. We delete the intermediate
+## squashfs image at the end.
+
+set -e
+set -x
+
+if [ "$#" -ne 2 ]; then
+    echo "usage: $(basename "$0") <SOURCE_DIR> <ARCHIVE_IMG>"
+    exit 1
+fi
+
+SRC_DIR="$1"
+LUKS_IMG="$2"
+SQUASHFS_IMG="$2.squashfs"
+
+if [ -e "$SQUASHFS_IMG" ]; then
+    echo "$SQUASHFS_IMG already exists -- aborting"
+    exit 1
+fi
+
+if [ -e "$LUKS_IMG" ]; then
+    echo "$LUKS_IMG already exists -- aborting"
+    exit 1
+fi
+
+echo "making squashfs $SQUASHFS_IMG from $SRC_DIR..."
+mksquashfs "$SRC_DIR" "$SQUASHFS_IMG" -comp zstd
+
+echo "encryting squashfs..."
+
+## The code from here on is heavily based on a gist by github user jigbu:
+## https://gist.github.com/jigpu/428ea6548809b5c06f9a1f1f2fc4214f
+
+## This in turn references an older blog article:
+## https://martin.elwin.com/blog/2008/05/backups-with-squashfs-and-luks/
+
+CRYPTNAME=mkcrypt-$RANDOM
+CRYPTDEV="/dev/mapper/$CRYPTNAME"
+OVERHEAD=32768
+
+BLOCKCOUNT=$(du --block-size=512 "$SQUASHFS_IMG" | cut -f1)
+
+dd if=/dev/zero of="$LUKS_IMG" bs=512 count=1 seek=$(($BLOCKCOUNT + $OVERHEAD))
+LOOPDEV=$(losetup -f)
+sudo losetup "$LOOPDEV" "$LUKS_IMG"
+sudo cryptsetup luksFormat "$LOOPDEV"
+sudo cryptsetup luksOpen "$LOOPDEV" "$CRYPTNAME"
+
+if test $(blockdev --getsize "$CRYPTDEV") -lt $BLOCKCOUNT; then
+    DELTA=$(( $BLOCKCOUNT - $(blockdev --getsize "$CRYPTDEV") ))
+    echo "error: cannot fit image into available space."
+    echo "Please increase overhead by at least $DELTA in the script."
+    sudo cryptsetup luksClose "$CRYPTNAME"
+    sudo losetup -d "$LOOPDEV"
+    rm "$LUKS_IMG"
+    exit 1
+fi
+
+sudo dd if="$SQUASHFS_IMG" of="$CRYPTDEV" status=progress
+
+sudo cryptsetup luksClose "$CRYPTNAME"
+sudo losetup -d "$LOOPDEV"
+
+## rm "$SQUASHFS_IMG"

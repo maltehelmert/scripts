@@ -1,0 +1,15 @@
+#! /bin/bash
+
+set -e
+
+if [ "$#" -ne 0 ]; then
+    echo "usage: $(basename "$0")"
+    exit 1
+fi
+
+MAPPER=mapper-mount-archive
+DEV="/dev/mapper/$MAPPER"
+MOUNT=/mnt
+
+sudo umount "$MOUNT"
+sudo cryptsetup close "$MAPPER"

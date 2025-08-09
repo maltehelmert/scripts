@@ -1,0 +1,25 @@
+#! /bin/bash
+
+set -e
+
+if [ "$#" -ne 1 ]; then
+    echo "usage: $(basename "$0") <ARCHIVE_IMG>"
+    exit 1
+fi
+
+MAPPER=mapper-mount-archive
+DEV="/dev/mapper/$MAPPER"
+MOUNT=/mnt
+
+if mountpoint -q "$MOUNT"; then
+    echo "already mounted $MOUNT: umounting it"
+    sudo umount "$MOUNT"
+fi
+
+if [ -e "$DEV" ]; then
+    echo "already mapped $MAPPER: unmapping it"
+    sudo cryptsetup close "$MAPPER"
+fi
+
+sudo cryptsetup open --type luks "$1" "$MAPPER"
+sudo mount "$DEV" "$MOUNT"
