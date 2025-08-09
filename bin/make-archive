@@ -61,7 +61,7 @@ OVERHEAD=32768
 BLOCKCOUNT=$(du --block-size=512 "$SQUASHFS_IMG" | cut -f1)
 
 dd if=/dev/zero of="$LUKS_IMG" bs=512 count=1 seek=$(($BLOCKCOUNT + $OVERHEAD))
-LOOPDEV=$(losetup -f)
+LOOPDEV=$(sudo losetup -f)
 sudo losetup "$LOOPDEV" "$LUKS_IMG"
 sudo cryptsetup luksFormat "$LOOPDEV"
 sudo cryptsetup luksOpen "$LOOPDEV" "$CRYPTNAME"
