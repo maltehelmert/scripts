@@ -23,7 +23,6 @@
 ## squashfs image at the end.
 
 set -e
-set -x
 
 if [ "$#" -ne 2 ]; then
     echo "usage: $(basename "$0") <SOURCE_DIR> <ARCHIVE_IMG>"
@@ -67,7 +66,7 @@ sudo losetup "$LOOPDEV" "$LUKS_IMG"
 sudo cryptsetup luksFormat "$LOOPDEV"
 sudo cryptsetup luksOpen "$LOOPDEV" "$CRYPTNAME"
 
-if test $(blockdev --getsize "$CRYPTDEV") -lt $BLOCKCOUNT; then
+if test $(sudo blockdev --getsize "$CRYPTDEV") -lt $BLOCKCOUNT; then
     DELTA=$(( $BLOCKCOUNT - $(blockdev --getsize "$CRYPTDEV") ))
     echo "error: cannot fit image into available space."
     echo "Please increase overhead by at least $DELTA in the script."
@@ -82,4 +81,4 @@ sudo dd if="$SQUASHFS_IMG" of="$CRYPTDEV" status=progress
 sudo cryptsetup luksClose "$CRYPTNAME"
 sudo losetup -d "$LOOPDEV"
 
-## rm "$SQUASHFS_IMG"
+rm "$SQUASHFS_IMG"
