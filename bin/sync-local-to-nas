@@ -11,18 +11,18 @@ CORRECT_HOST=pamster
 ## Set destination directory and excludes.
 if [[ "$HOST" == "$CORRECT_HOST" ]]; then
     SRC_DIR=/local/
-    DEST_DIR=/nas/
-    OPTIONS="--no-group --info=progress2 --exclude=/lost+found --exclude=/android-photos"
-
-    ## Regarding --no-group:
-    ## - We cannot set groups properly here, but the NAS squashes groups
-    ##   anyway.
-    ## - An argument could be made to use --no-owner for the same
-    ##   reason, but if we don't use it, we'll get warnings/errors for
-    ##   files with unusual owners, which for me is a feature.
-    ## - A more advanced setup with --groupmap and --usermap might be possible,
-    ##   but I think this one works fine.
-
+    ## NOTE: I used DEST_DIR=/nas/ in the past, but the combination of
+    ## large files (tens of GB) and going via NFS led to serious
+    ## issues, frequently invoking the kernel's oom killer taking down
+    ## entire terminal sessions. Going to the NAS via ssh seems a
+    ## better way to do this.
+    ##
+    ## The main drawback is that the path on the other side only
+    ## appear to be semi-documented and might eventually change. But
+    ## from a web search it seems clear that many people are using the
+    ## same approach, so perhaps it counts as supported.
+    DEST_DIR=hamsterhausen:/share/data/helmert/
+    OPTIONS="--info=progress2 --exclude=/lost+found --exclude=/android-photos"
     ## Regarding --exclude=/android-photos:
     ## - Makes sure we don't delete /nas/android-photos, which is synced from
     ##   the Android phone and doesn't exist on pamster.
