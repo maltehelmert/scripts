@@ -12,31 +12,31 @@ function main {
         error "must run this from pamster"
     fi
 
-    echo "pulling from dmi-skinny..."
+    echo "Pulling from dmi-skinny..."
     ssh dmi-skinny "$@"
     echo
 
-    echo "pulling from nils, assuming dmi-skinny is NOT in the VPN..."
-    ## As of 2025-08-10, from the VPN I cannot get to nils.
+    echo "Assuming that VPN is DOWN on dmi-skinny..."
+    echo "Pulling from nils..."
+    ## As of 2025-08-10, from the VPN I cannot get to nils, hence the
+    ## extra hop via dmi-skinny.
     ssh dmi-skinny ssh nils "$@"
     echo
 
-    echo "assuming that kruemel is powered on..."
-    echo
-    echo "pulling from kruemel..."
+    echo "Assuming that kruemel is powered on..."
+    echo "Pulling from kruemel..."
     ssh kruemel "$@"
     echo
 
-    echo "assuming that VPN is running..."
-    echo
-
-    echo "pulling from dmi-kibo via dmi-skinny..."
+    echo "Assuming that VPN is up..."
+    echo "Pulling from dmi-kibo..."
     ssh kibo "$@"
     echo
 
-    echo "pulling from grid via dmi-skinny..."
+    echo "Assuming that VPN is up..."
+    echo "Pulling from grid..."
     ssh grid "$@"
     echo
 
-    echo "done"
+    echo "Done."
 }
