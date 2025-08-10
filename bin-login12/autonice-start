@@ -6,7 +6,7 @@ source autonice-common
 
 function start-autonice {
     set-partition-variables "$1"
-    echo -n "start autonice is running on $PARTITION: "
+    echo -n "start autonice on $PARTITION: "
     if pgrep -f "$PGREP_PATTERN" > /dev/null; then
         echo "already running, please run autonice-stop"
     else
