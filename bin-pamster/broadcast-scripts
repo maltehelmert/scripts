@@ -1,0 +1,5 @@
+#! /bin/bash
+
+set -e
+source broadcast-common
+main git -C scripts pull
