@@ -1,0 +1,24 @@
+#! /bin/bash
+
+set -e
+
+USERNAME=$(whoami)
+SSH_TARGET=aifiles@dmi-ai-web.dmi.unibas.ch
+SERVER_DIR="tmp_files/$USERNAME"
+URL="https://ai.dmi.unibas.ch/_tmp_files/$USERNAME"
+
+if [[ "$#" > 0 ]]; then
+    scp "$@" "$SSH_TARGET:$SERVER_DIR/"
+    echo
+    echo "published as:"
+    for filename in "$@"; do
+        echo "    $URL/$(basename "$filename")"
+    done
+    echo
+fi
+
+echo "your temp files:"
+ssh "$SSH_TARGET" ls -Arlth "$SERVER_DIR"
+echo
+echo "to delete a temp file, run:"
+echo "ssh "$SSH_TARGET" rm "$SERVER_DIR/FILENAME""

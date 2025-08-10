@@ -1,0 +1,143 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8; mode: python -*-
+
+## Notes on using this is a cron job:
+## - On errors (or any kind of output), cron sends the output to the
+##   user by default. However, this will end up in the local spool,
+##   where we do not want to have it. Thus, cron should be configured
+##   to send output to a certain e-mail address.
+## - We set the PATH manually, as cron uses a restricted environment.
+##   This is probably not necessary at the moment. It was necessary
+##   in the past to include /usr/local/bin.
+## - We need to set up PYTHONPATH to find the myemail module.
+## - We schedule this for the night when it's unlikely that there's
+##   much activity (04:20).
+##
+## Here is an example crontab incorporating these four suggestions:
+##
+##   MAILTO=malte.helmert@unibas.ch
+##   PATH=/bin:/usr/bin:/usr/local/bin
+##   PYTHONPATH=/home/helmert/lib/python:/home/helmert/tools/lib
+##
+##   20  4  *  *  * /home/helmert/bin/backup-kibo
+##
+## Note that $PATH cannot be used to refer to the old value of PATH
+## within the crontab, as this would be interpreted literally, not
+## expanded.
+
+from os import umask
+from os.path import join as joinpath
+from subprocess import Popen, PIPE
+from datetime import datetime
+
+import myemail
+
+
+def run_command(command, log_file, log_func, swallow_blank_stderr=False):
+    # Run the command "command" redirecting stdout to log_file and
+    # sending an email if stderr is not all-whitespace
+    process = Popen(command, stdout=log_file, stderr=PIPE)
+    stderr = process.communicate()[1]
+    return_code = process.returncode
+    if swallow_blank_stderr and stderr and not stderr.strip():
+        # Swallow error output that is all-whitespace.
+        stderr = ""
+    report_errors(command, return_code, stderr, log_func)
+
+
+def report_errors(command, return_code, stderr, log_func):
+    if return_code or stderr:
+        log_func("There were errors running %s (return code = %s)." % (
+                command, return_code))
+        log_func("Error output follows:")
+        log_func(stderr)
+        email_contents = email_template % dict(
+            command=command, return_code=return_code, stderr=stderr)
+        myemail.send_email(to_address=email_address,
+                           subject=email_subject,
+                           contents=email_contents)
+    else:
+        log_func("There were no errors running %s." % command)
+
+
+backup_root = "/local/backups"
+log_dir = joinpath(backup_root, "logs")
+latest_backup_dir = joinpath(backup_root, "latest")
+
+email_address = "Malte Helmert <malte.helmert@unibas.ch>"
+email_subject = "Fehler beim Erstellen des Backups"
+email_template = u"""Hallo Malte,
+
+beim Erstellen des täglichen Backups ist ein Fehler aufgetreten
+(return code: %(return_code)s). Es folgt die Ausgabe auf stderr:
+
+========== %(command)s ==========
+%(stderr)s"""
+
+local_dirs = [
+    "/home/helmert",
+    # "/var/lib/roundup/trackers",
+    # "/var/lib/moinmoin/wikis",
+    # "/var/lib/hg",
+    # "/etc/apache2",
+    # "/etc/moin",
+    ]
+
+excludes = [
+    "/helmert/cache",
+    "/helmert/.thunderbird",
+    # "/trackers/downward-issues/config.ini",
+    # "/trackers/downward-issues/config.ini.secret",
+]
+
+# Directories on which df usage info should be included in the log.
+df_dirs = [
+    "/home/helmert",
+    "/local",
+    ]
+
+
+time_stamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+log_file_name = joinpath(log_dir, "backup-%s.log" % time_stamp)
+
+rsync_cmd = ["/usr/bin/rsync",
+             "--archive", "--verbose", "--hard-links", "--delete", "--stats"]
+for exclude in excludes:
+    rsync_cmd.extend(["--exclude", exclude])
+
+# We now do a local backup. A remote backup via ssh works very
+# similarly, except that it makes sense to add the "--compress" option
+# and that "destination" should be of the form
+# "helmert@mandala:parent_dir_for_backup".
+
+backup_dir_basename = "backup-%s" % time_stamp
+destination = joinpath(backup_root, backup_dir_basename)
+rsync_cmd.extend(["--link-dest", latest_backup_dir])
+rsync_cmd.extend(local_dirs)
+rsync_cmd.append(destination)
+
+umask(0o077)
+
+
+with open(log_file_name, "w") as log_file:
+    def log(text=""):
+        print(text, file=log_file)
+    start_time = datetime.now().replace(microsecond=0)
+
+    run_command(["df"] + df_dirs, log_file, log)
+    log()
+    run_command(rsync_cmd, log_file, log, swallow_blank_stderr=True)
+    log()
+    run_command(["/bin/ln", "-snf", joinpath(backup_dir_basename),
+                 latest_backup_dir], log_file, log)
+    end_time = datetime.now().replace(microsecond=0)
+    total_time = end_time - start_time
+    log()
+    log("Backup started:  %s" % start_time)
+    log("Backup finished: %s" % end_time)
+    log("Elapsed time:    %s" % total_time)
+    log()
+    run_command(["df"] + df_dirs, log_file, log)
+
+# log file cannot be used any more here
+run_command(["/bin/bzip2", log_file_name], None, lambda text: None)
