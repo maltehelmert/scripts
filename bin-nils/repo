@@ -1,0 +1,16 @@
+#! /usr/bin/env python3
+
+# This is a monkey-patching version of the original repo main script
+# because as of this writing (2023-09-15), the current version of repo
+# does not allow configuring the SMTP server without code modification.
+
+from repo import paths
+from repo import ui
+
+def get_monkeypatched_smtp_host():
+    return "localhost"
+
+paths.smtp_host = get_monkeypatched_smtp_host
+
+if __name__ == "__main__":
+    ui.main()
