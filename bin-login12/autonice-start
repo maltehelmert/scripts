@@ -1,0 +1,22 @@
+#! /bin/bash
+
+set -e
+
+source autonice-common
+
+function start-autonice {
+    set-partition-variables "$1"
+    echo -n "start autonice is running on $PARTITION: "
+    if pgrep -f "$PGREP_PATTERN" > /dev/null; then
+        echo "already running, please run autonice-stop"
+    else
+        mkdir -p "$(dirname "$LOG")"
+        mkdir -p "$(dirname "$NOHUP_LOG")"
+        nohup ~/repos/autonice/autonice.py --log-file "$LOG" "$PARTITION" >> "$NOHUP_LOG" 2>&1 &
+        echo done
+    fi
+}
+
+for PARTITION in $PARTITIONS; do
+    start-autonice $PARTITION
+done

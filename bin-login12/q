@@ -1,0 +1,12 @@
+#! /bin/bash
+
+## Other options to experiment with when the grid is busier:
+## %l (time limit)
+## %L (time left)
+## %m (memory requested by job)
+## %M (time used by the job)
+## %N (list of nodes allocated to the job or job step)
+
+squeue -o "%22i %9P %40j %10u %2t %.10M %.6D %16R %.5Q %.5y"
+## until this is more thoroughly tested, here is the previous version:
+## squeue -q infai -o "%22i %9P %40j %10u %2t %.10M %.6D %16R %8Q"

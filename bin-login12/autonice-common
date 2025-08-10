@@ -1,0 +1,12 @@
+# -*- mode: sh; sh-shell: bash -*-
+
+## This exists to be sourced by other scripts to factor out common code.
+
+PARTITIONS="infai_2 infai_3"
+
+function set-partition-variables {
+    PARTITION="$1"
+    LOG="$HOME/var/autonice/autonice-$PARTITION.log"
+    NOHUP_LOG="$HOME/var/autonice/nohup-$PARTITION.log"
+    PGREP_PATTERN="/autonice\.py --log-file $LOG"
+}
