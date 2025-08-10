@@ -11,7 +11,7 @@ function process {
     fi
     NEW_IGNORED=$(echo "$IGNORED
 $UNKNOWN" | grep -v '^$' | LANG=C sort)
-    svn propset svn:ignore "$(echo "$NEW_IGNORED")" . || exit 1
+    svn propset svn:ignore . --file <(echo "$NEW_IGNORED") || exit 1
     if [[ -z "$IGNORED" ]]; then
         echo "New value is:"
     else
