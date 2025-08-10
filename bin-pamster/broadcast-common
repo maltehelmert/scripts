@@ -1,0 +1,55 @@
+# -*- mode: sh; sh-shell: bash -*-
+
+## This exists to be sourced by other scripts to factor out common code.
+
+function error {
+    echo "$@" 1>&2
+    exit 1
+}
+
+function main {
+    if [[ "$(hostname)" != pamster ]]; then
+        error "must run this from pamster"
+    fi
+
+    echo "pulling from dmi-skinny..."
+    ssh dmi-skinny "$@"
+    echo
+
+    echo "pulling from nils, assuming dmi-skinny is NOT in the VPN..."
+    ## From the VPN I cannot get to nils.
+    ssh dmi-skinny ssh nils "$@"
+    echo
+
+    echo "assuming that kruemel is powered on..."
+    echo
+    echo "pulling from kruemel..."
+    ssh kruemel "$@"
+    echo
+
+    ## Old code commented out until the VPN on pamster has proven itself.
+
+    echo "assuming that dmi-skinny has VPN running..."
+    echo
+
+    # echo "pulling from dmi-kibo via dmi-skinny..."
+    # ssh dmi-skinny ssh dmi-kibo.dmi.unibas.ch "$@"
+    # echo
+
+    # echo "pulling from grid via dmi-skinny..."
+    # ssh dmi-skinny ssh grid "$@"
+    # echo
+
+    echo "assuming that VPN is running..."
+    echo
+
+    echo "pulling from dmi-kibo via dmi-skinny..."
+    ssh kibo "$@"
+    echo
+
+    echo "pulling from grid via dmi-skinny..."
+    ssh grid "$@"
+    echo
+
+    echo "done"
+}
