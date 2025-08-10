@@ -1,0 +1,44 @@
+#! /bin/bash
+
+## This script is meant to back up the backup files and other data on
+## pamster:/local to the NAS.
+## It should be run after the various "sync-..." scripts on pamster
+## so that the data on pamster:/local is up to date.
+
+HOST="$(hostname -s)"
+CORRECT_HOST=pamster
+
+## Set destination directory and excludes.
+if [[ "$HOST" == "$CORRECT_HOST" ]]; then
+    SRC_DIR=/local/
+    DEST_DIR=/nas/
+    OPTIONS="--no-group --info=progress2 --exclude=/lost+found --exclude=/android-photos"
+
+    ## Regarding --no-group:
+    ## - We cannot set groups properly here, but the NAS squashes groups
+    ##   anyway.
+    ## - An argument could be made to use --no-owner for the same
+    ##   reason, but if we don't use it, we'll get warnings/errors for
+    ##   files with unusual owners, which for me is a feature.
+    ## - A more advanced setup with --groupmap and --usermap might be possible,
+    ##   but I think this one works fine.
+
+    ## Regarding --exclude=/android-photos:
+    ## - Makes sure we don't delete /nas/android-photos, which is synced from
+    ##   the Android phone and doesn't exist on pamster.
+    ## - Perhaps this should not live in the same directory as the directories
+    ##   we sync from /local because this exclude is fragile.
+    ## - Perhaps we should sync this from the NAS to other machines, too,
+    ##   for backup purposes. But at least we have one copy on the phone and
+    ##   one on the NAS, and the NAS also has RAID.
+else
+    echo "This script is only meant to be run from $CORRECT_HOST -- exiting."
+    exit 1
+fi
+
+## Unlike sync-jukebox, this sync script deletes by default.
+##
+## For this script, deletions are common, and because we only ever
+## sync in one direction, this should be safe to use.
+
+rsync -avz --partial --progress --delete $SRC_DIR $OPTIONS $DEST_DIR

@@ -1,0 +1,79 @@
+#! /bin/bash
+
+set -e
+IFS="
+"
+
+function handle-file {
+    if [[ "$1" == 'ProgramData' ||
+              "$1" == 'Users'
+        ]]; then
+        return 1
+    elif [[ "$1" == '$Recycle.Bin' ||
+              "$1" == '$WinREAgent' ||
+              "$1" == 'Config.Msi' ||
+              "$1" == 'Documents' ||
+              "$1" == 'Dokumente und Einstellungen' ||
+              "$1" == 'DumpStack.log' ||
+              "$1" == 'DumpStack.log.tmp' ||
+              "$1" == 'OneDriveTemp' ||
+              "$1" == 'PerfLogs' ||
+              "$1" == 'Program Files' ||
+              "$1" == 'Program Files (x86)' ||
+              "$1" == 'Programme' ||
+              "$1" == 'Recovery' ||
+              "$1" == 'Steuertipps' ||
+              "$1" == 'System Volume Information' ||
+              "$1" == 'Windows' ||
+              "$1" == 'hiberfil.sys' ||
+              "$1" == 'inetpub' ||
+              "$1" == 'pagefile.sys' ||
+              "$1" == 'swapfile.sys'
+          ]]; then
+        return 2
+    else
+        return 3
+    fi
+}
+
+function sync-file {
+    rsync -avz --partial --progress --delete --info=progress2 "/windows/$1/" "/local/backup-windows/$1/"
+}
+
+
+echo "syncing windows..."
+
+## Check if there are any unknown files.
+UNKNOWN=0
+for filename in $(ls /windows); do
+    handle-file "$filename" || TYPE=$?
+    if [[ $TYPE == 3 ]]; then
+        echo "unknown file: $filename"
+        UNKNOWN=1
+    fi
+done
+
+if [[ $UNKNOWN == 1 ]]; then
+    echo "There were unknown files: aborting."
+    exit 1
+fi
+
+## Report skipped files.
+echo
+for filename in $(ls /windows); do
+    handle-file "$filename" || TYPE=$?
+    if [[ $TYPE == 2 ]]; then
+        echo "skipping $filename..."
+    fi
+done
+
+## Sync files.
+echo
+for filename in $(ls /windows); do
+    handle-file "$filename" || TYPE=$?
+    if [[ $TYPE == 1 ]]; then
+        echo "syncing $filename..."
+        sync-file "$filename"
+        echo
+    fi
+done

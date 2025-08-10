@@ -1,0 +1,28 @@
+#! /bin/bash
+
+set -e
+
+if [[ $# != 2 ]]; then
+    echo "usage: $(basename "$0") file1.pdf file2.pdf" >&2
+    exit 2
+fi
+
+TMPDIR1="tmp.same-pdf.$$.1"
+TMPDIR2="tmp.same-pdf.$$.2"
+
+mkdir $TMPDIR1
+mkdir $TMPDIR2
+convert "$1" -strip +set date:create +set date:modify "$TMPDIR1/page.png"
+convert "$2" -strip +set date:create +set date:modify "$TMPDIR2/page.png"
+DIFFERENT=0
+diff -qr "$TMPDIR1" "$TMPDIR2" || DIFFERENT=1
+echo "result: $DIFFERENT"
+rm -r $TMPDIR1
+rm -r $TMPDIR2
+
+if [[ $DIFFERENT == 0 ]]; then
+    echo "PDFs are identical"
+else
+    echo "PDFs are not identical"
+fi
+exit $RESULT

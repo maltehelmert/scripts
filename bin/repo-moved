@@ -1,0 +1,59 @@
+#! /bin/bash
+
+set -e
+
+# repo-moved OLD_URL NEW_URL
+#
+# After a repository has moved from OLD_URL to NEW_URL, update the
+# .hg/hgrc file and the directory name. This assumes that the last
+# part of OLD_URL is the last part of the directory name and will
+# change it to the last part of NEW_URL.
+
+# Note: this is a quick and dirty solution, as it does not account for
+# characters in OLD_URL or NEW_URL that need to be escaped.
+
+function error {
+    echo "$@" 1>&2
+}
+
+if [[ $# != 2 ]]; then
+    error "usage: $(basename "$0") OLD_URL NEW_URL"
+    exit 2
+fi
+
+OLD_URL="$1"
+NEW_URL="$2"
+
+GREP_SED_PATTERN="^default = $OLD_URL\$"
+SED_REPLACE="default = $NEW_URL"
+
+shopt -s dotglob
+shopt -s globstar
+cd
+echo "scanning $(pwd)..."
+for hgrc in **/.hg/hgrc; do
+    REPO_DIR="$(dirname "$(dirname "$hgrc")")"
+    NEW_REPO_DIR="$(dirname "$REPO_DIR")/$(basename "$NEW_URL")"
+    HGRC_MATCH=0
+    if grep -q "$GREP_SED_PATTERN" "$hgrc"; then
+        echo "matched hgrc: $hgrc"
+        HGRC_MATCH=1
+    fi
+    REPO_DIR_MATCH=0
+    if [[ "$(basename "$REPO_DIR")" == "$(basename "$OLD_URL")" ]]; then
+        echo "matched directory: $REPO_DIR"
+        REPO_DIR_MATCH=1
+    fi
+    if [[ $HGRC_MATCH == 1 && $REPO_DIR_MATCH == 1 ]]; then
+        echo "both matched: proceed"
+        echo "updating repository URL..."
+        sed -i -e "s|$GREP_SED_PATTERN|$SED_REPLACE|" "$hgrc"
+        echo "moving $REPO_DIR to $NEW_REPO_DIR..."
+        mv "$REPO_DIR" "$NEW_REPO_DIR"
+        echo "done"
+        echo "running hg --summary --remote to test new URL:"
+        hg summary --remote -R "$NEW_REPO_DIR"
+    elif [[ $HGRC_MATCH == 1 || $REPO_DIR_MATCH == 1 ]]; then
+        echo "only one match: skipping"
+    fi
+done

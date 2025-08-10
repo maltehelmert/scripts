@@ -1,0 +1,26 @@
+#! /bin/bash
+
+HOST="$(hostname -s)"
+
+SRC_DIR=kibo:/local/jukebox
+
+## Set destination directory and excludes.
+if [[ "$HOST" == dmi-skinny ]]; then
+    DEST_DIR=/local
+    OPTIONS=
+else
+    echo "unknown host $HOST -- please add a rule to set DEST_DIR"
+    exit 1
+fi
+
+## By default: don't delete stuff, only warn if stuff would be deleted
+## with --delete.
+rsync -avz --partial --progress --delete --max-delete=0 $SRC_DIR $OPTIONS $DEST_DIR
+if [[ $? == 25 ]]; then
+    ## Files should be deleted (see rsync manpage, --max-delete option).
+    ## We do a dry-run of with --delete to find out which files.
+    rsync -avz --delete --dry-run $SRC_DIR $OPTIONS $DEST_DIR
+    echo
+    echo NOTE: This was just a dry run. To actually delete the local files, run
+    echo rsync -avz --delete $SRC_DIR $OPTIONS $DEST_DIR
+fi

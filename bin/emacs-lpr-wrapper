@@ -1,0 +1,7 @@
+#! /bin/bash
+
+## Emacs calls this as a filter, i.e., the postscript to be printed
+## arrives on stdin. The stdout and stderr of this script are
+## swallowed, so if we want to log, we should log to a file.
+
+ps2pdf - - | lpr "$@"

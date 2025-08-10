@@ -1,0 +1,48 @@
+#! /bin/bash
+
+function usage {
+    self=$(basename "$0")
+    echo "usage: $self REV1 [REV2]"
+    echo "$self REV1: show diff for given changeset (like svn -c REV1)"
+    echo "$self REV1 REV2: show diff between revisions (like svn -r REV1:REV2)"
+    exit 2
+}
+
+function check-num {
+    if [[ ! "$1" =~ ^[0-9][0-9]*$ ]]; then
+        echo "not a revision number: $1"
+        exit 2
+    fi
+}
+
+if [[ $# == 1 ]]; then
+    NEW_REV="$1"
+    check-num "$NEW_REV"
+    if [[ $NEW_REV == 0 ]]; then
+        echo bad changeset: $NEW_REV
+        exit 2
+    fi
+    OLD_REV=$(($NEW_REV - 1))
+elif [[ $#  == 2 ]]; then
+    OLD_REV="$1"
+    NEW_REV="$2"
+    check-num "$OLD_REV"
+    check-num "$NEW_REV"
+    if [[ $OLD_REV == $NEW_REV ]]; then
+        echo revision numbers must be different
+        exit 2
+    fi
+else
+    usage
+fi
+
+BASE_URL=$(svn info | grep ^URL: | grep -o '[^ ]*://[^ ]*')
+OLD_DIR="rev$OLD_REV"
+NEW_DIR="rev$NEW_REV"
+if [ ! -e $OLD_DIR ]; then
+    svn checkout "$BASE_URL@$OLD_REV" "$OLD_DIR" || exit 1
+fi
+if [ ! -e $NEW_DIR ]; then
+    svn checkout "$BASE_URL@$NEW_REV" "$NEW_DIR" || exit 1
+fi
+meld "$OLD_DIR" "$NEW_DIR"

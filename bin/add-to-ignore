@@ -1,0 +1,29 @@
+#! /bin/bash
+
+function process {
+    OLDDIR=$(pwd)
+    cd "$1"
+    IGNORED=$(svn propget svn:ignore .)
+    UNKNOWN=$(svn status --non-recursive . | grep '^?' | sort | sed -e 's/? *//')
+    if [[ -z "$UNKNOWN" ]]; then
+        cd "$OLDDIR"
+        return
+    fi
+    NEW_IGNORED=$(echo "$IGNORED
+$UNKNOWN" | grep -v '^$' | LANG=C sort)
+    svn propset svn:ignore "$(echo "$NEW_IGNORED")" . || exit 1
+    if [[ -z "$IGNORED" ]]; then
+        echo "New value is:"
+    else
+        echo "Updated value is:"
+    fi
+    echo "$NEW_IGNORED"
+    cd "$OLDDIR"
+}
+
+if [[ $# == 0 ]]; then
+    process .
+fi
+for DIR in "$@"; do
+    process "$DIR"
+done

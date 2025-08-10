@@ -1,0 +1,23 @@
+#! /bin/bash
+
+## We sync from nils to pamster, initiating the process from pamster.
+
+HOST="$(hostname -s)"
+CORRECT_HOST=pamster
+
+## Set destination directory and excludes.
+if [[ "$HOST" == "$CORRECT_HOST" ]]; then
+    SRC_DIR=nils:/home/malte/
+    DEST_DIR=/local/backup-nils/
+    OPTIONS=
+else
+    echo "This script is only meant to be run from $CORRECT_HOST -- exiting."
+    exit 1
+fi
+
+## Unlike sync-jukebox, this sync script deletes by default.
+##
+## For this script, deletions are common, and because we only ever
+## sync in one direction, this should be safe to use.
+
+rsync -avz --partial --progress --delete $SRC_DIR $OPTIONS $DEST_DIR

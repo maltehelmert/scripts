@@ -1,0 +1,47 @@
+#! /bin/bash
+
+## Compre local version of a file to the remote version of the same
+## file. Example usage:
+##
+## $ remote-diff ~/.bashrc kibo
+##
+## The script looks for the remove file on the same path as the one
+## given on the command-line, where relative paths are interpreted
+## relative to the remote $HOME.
+##
+## Exception: absolute paths starting with $HOME/ are converted paths
+## relative to $HOME to have a better chance of working if local and
+## remote $HOME are different.
+
+set -e
+
+DEBUG=0
+
+function error {
+    echo "$@" 1>&2
+}
+
+if [[ $# != 2 ]]; then
+    error "usage: $(basename "$0") LOCAL-FILE REMOTE-HOST"
+    exit 2
+fi
+
+LOCAL_PATH="$1"
+REMOTE_HOST="$2"
+
+if [[ "$LOCAL_PATH" =~ ^$HOME/ ]]; then
+    REMOTE_PATH="${LOCAL_PATH#$HOME/}"
+else
+    REMOTE_PATH="$LOCAL_PATH"
+fi
+
+ESCAPED_REMOTE_PATH="$(printf '%q' "$REMOTE_PATH")"
+
+if [[ $DEBUG != 0 ]]; then
+    echo "local path: $LOCAL_PATH"
+    echo "remote path: $REMOTE_PATH"
+    echo "escaped remote path: $ESCAPED_REMOTE_PATH"
+    echo "remote host: $REMOTE_HOST"
+fi
+
+diff -u "$LOCAL_PATH" <(ssh "$REMOTE_HOST" cat "$ESCAPED_REMOTE_PATH")

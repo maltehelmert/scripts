@@ -1,0 +1,4 @@
+#! /bin/bash
+cd ~/lib/vpn-basel
+source bin/activate
+openconnect-sso --server vpn.mobile.unibas.ch

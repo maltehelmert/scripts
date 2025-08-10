@@ -1,0 +1,12 @@
+#! /bin/bash
+
+for x in "$@"; do
+    echo "unblackifying $x..."
+    BACKUP="$x.bak"
+    if [ -e $BACKUP ]; then
+        echo "$BACKUP exists -- skipping"
+        continue
+    fi
+    mv "$x" "$BACKUP"
+    pdftops "$BACKUP" - | ps2pdf14 - "$x"
+done

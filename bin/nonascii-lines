@@ -1,0 +1,21 @@
+#! /usr/bin/env python
+
+def check(input, prefix=""):
+    for line_no, line in enumerate(input):
+        try:
+            line.decode("utf-8").encode("ascii")
+        except Exception, e:
+            print "%s%d: %r [%r]" % (prefix, line_no + 1, line, e)
+
+if __name__ == "__main__":
+    import sys
+    args = sys.argv[1:]
+    if args:
+        for filename in args:
+            if len(args) >= 2:
+                prefix = "%s: " % filename
+            else:
+                prefix = ""
+            check(open(filename), prefix)
+    else:
+        check(sys.stdin)

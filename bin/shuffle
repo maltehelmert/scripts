@@ -1,0 +1,9 @@
+#! /usr/bin/env python3
+
+import random
+import sys
+
+args = sys.argv[1:]
+random.shuffle(args)
+for arg in args:
+    print(arg)

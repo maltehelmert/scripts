@@ -1,0 +1,46 @@
+#! /bin/bash
+
+SRC_DIR=icapsvideos@ai-icaps.dmi.unibas.ch:/local/archive/icaps-video-archive/
+OPTIONS=
+
+
+function sync-to {
+    DEST_DIR="$1"
+
+    ## By default: don't delete stuff, only warn if stuff would be deleted
+    ## with --delete.
+    ##
+    ## Note that we use --max-delete=-1 instead of --max-delete=0 for
+    ## compatibility with rsync versions older than 3.0.0; see email
+    ## exchange with Minh on 31.07.2017.
+    rsync -avz --progress --delete --max-delete=-1 $SRC_DIR $OPTIONS $DEST_DIR
+    if [[ $? == 25 ]]; then
+        ## Files should be deleted (see rsync manpage, --max-delete option).
+        ## We do a dry-run of with --delete to find out which files.
+        rsync -avz --delete --dry-run $SRC_DIR $OPTIONS $DEST_DIR
+        echo
+        echo NOTE: This was just a dry run. To actually delete the local files, run
+        echo rsync -avz --delete $SRC_DIR $OPTIONS $DEST_DIR
+    fi
+}
+
+## We sync from dmi-airepos to dmi-kibo (Malte's machine) or to hanoi
+## (Minh's machine). In case of Minh's machine, we sync to two
+## different directories, so there are two calls to the "sync-to"
+## function.
+
+HOST="$(hostname -s)"
+
+## Set destination directory and excludes.
+if [[ "$HOST" == dmi-kibo ]]; then
+    ## sync-to /local/icaps-video-archive/
+    echo "The mirror on dmi-kibo no longer exists."
+    exit 1
+elif [[ "$HOST" == kruemel ]]; then
+    sync-to /local/icaps-video-archive/
+elif [[ "$HOST" == hanoi ]]; then
+    sync-to /Volumes/SATA_1TB/icaps-video-archive/
+else
+    echo "This script is not meant to be run from $HOST -- exiting."
+    exit 1
+fi

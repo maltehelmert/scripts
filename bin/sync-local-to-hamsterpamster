@@ -1,0 +1,26 @@
+#! /bin/bash
+
+## This script is meant to back up the backup files and other data on
+## pamster:/local to the external hard drive "hamsterpamster".
+## It should be run after the various "sync-..." scripts on pamster
+## so that the data on pamster:/local is up to date.
+
+HOST="$(hostname -s)"
+CORRECT_HOST=pamster
+
+## Set destination directory and excludes.
+if [[ "$HOST" == "$CORRECT_HOST" ]]; then
+    SRC_DIR=/local/
+    DEST_DIR=/media/helmert/hamsterpamster/
+    OPTIONS="--info=progress2 --exclude=/lost+found"
+else
+    echo "This script is only meant to be run from $CORRECT_HOST -- exiting."
+    exit 1
+fi
+
+## Unlike sync-jukebox, this sync script deletes by default.
+##
+## For this script, deletions are common, and because we only ever
+## sync in one direction, this should be safe to use.
+
+rsync -avz --partial --progress --delete $SRC_DIR $OPTIONS $DEST_DIR

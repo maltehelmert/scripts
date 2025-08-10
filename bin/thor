@@ -1,0 +1,19 @@
+#! /bin/bash
+
+## This script is called "thor" for historical reasons: until October
+## 2014, "thor" was the name of the login server at Uni Basel used by
+## this script.
+
+## Note [26.11.2017]: I used to include the "-2" option, but this broken
+## on kruemel on or around 26.11.2017. It seems to work nicely without
+## this option from kruemel and dakar.
+
+## Note [01.01.2018]: I added the "-D localhost:34320" line to be able
+## to access unibas websites in Firefox via proxy that otherwise
+## require being inside the VPN.
+
+ssh -f -N \
+    -L 34318:dmi-kibo.dmi.unibas.ch:22 \
+    -L 34319:login-infai.scicore.unibas.ch:22 \
+    -D localhost:34320 \
+    login2.bc2.unibas.ch
