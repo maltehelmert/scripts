@@ -2,4 +2,4 @@
 
 set -e
 source broadcast-common
-main yadm pull
+main "Running yadm pull" yadm pull

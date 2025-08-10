@@ -15,6 +15,7 @@
     * `reminder`: symbolic link to reminder script
     * `repo`: monkey-patched version of repo repository manager
   * `bin-pamster`: scripts on the PATH on pamster (home desktop)
+    * `broadcast-command`: run a command on many machines
     * `broadcast-scripts`: pull scripts repository from many machines
     * `broadcast-yadm`: run yadm pull from many machines
     * `make-archive`: turn a directory into an encrypted SquashFS archive
