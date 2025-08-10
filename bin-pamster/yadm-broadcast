@@ -1,0 +1,54 @@
+#! /bin/bash
+
+set -e
+
+function error {
+    echo "$@" 1>&2
+    exit 1
+}
+
+if [[ "$(hostname)" != pamster ]]; then
+    error "must run this from pamster"
+fi
+
+echo "pulling from dmi-skinny..."
+ssh dmi-skinny yadm pull
+echo
+
+echo "pulling from nils, assuming dmi-skinny is NOT in the VPN..."
+## From the VPN I cannot get to nils.
+ssh dmi-skinny ssh nils yadm pull
+echo
+
+echo "assuming that kruemel is powered on..."
+echo
+echo "pulling from kruemel..."
+ssh kruemel yadm pull
+echo
+
+## Old code commented out until the VPN on pamster has proven itself.
+
+echo "assuming that dmi-skinny has VPN running..."
+echo
+
+# echo "pulling from dmi-kibo via dmi-skinny..."
+# ssh dmi-skinny ssh dmi-kibo.dmi.unibas.ch yadm pull
+# echo
+
+# echo "pulling from grid via dmi-skinny..."
+# ssh dmi-skinny ssh grid yadm pull
+# echo
+
+echo "assuming that VPN is running..."
+echo
+
+echo "pulling from dmi-kibo via dmi-skinny..."
+ssh kibo yadm pull
+echo
+
+echo "pulling from grid via dmi-skinny..."
+ssh grid yadm pull
+echo
+
+
+echo "done"
