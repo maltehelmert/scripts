@@ -25,6 +25,11 @@ class Recipe(defaultdict):
             result[key] += value
         return result
 
+    def __iadd__(self, other):
+        for key, value in other.items():
+            self[key] += value
+        return self
+
     def set_title(self, title):
         self.title = title
 
@@ -32,7 +37,7 @@ class Recipe(defaultdict):
         if self.title:
             print(f"{self.title}:")
         for key, value in sorted(self.items()):
-            print(f"    {key:31} {float(value):10.4f} {value}")
+            print(f"    {key:35} {float(value):10.4f} {value}")
 
 
 def get_crop_info(crop):
@@ -93,14 +98,14 @@ def get_farm_info(kind, fertility_percentage, schedule):
         adjusted_harvest = harvest * harvest_multiplier
         if adjusted_harvest.denominator == 2:
             adjusted_harvest += Fraction(1, 2)
-            ## We round up the harvest if it has a fractional part of
-            ## 0.5, which is the only fractional part that occurs (and
-            ## that only for Greenhouse, never for Irrigated Farm or
-            ## Greenhouse II). Note that the harvest cannot be
-            ## fractional because a discrete number of crops are
-            ## harvested. (It could of course alternate between
-            ## harvests to simulate rounding, but the way the numbers
-            ## are displayed suggests otherwise.)
+            # We round up the harvest if it has a fractional part of
+            # 0.5, which is the only fractional part that occurs (and
+            # that only for Greenhouse, never for Irrigated Farm or
+            # Greenhouse II). Note that the harvest cannot be
+            # fractional because a discrete number of crops are
+            # harvested. (It could of course alternate between
+            # harvests to simulate rounding, but the way the numbers
+            # are displayed suggests otherwise.)
         assert adjusted_harvest.denominator == 1
         adjusted_harvest *= fertility_multiplier
         # I don' bother with rounding here because I think fertility
@@ -115,12 +120,12 @@ def get_farm_info(kind, fertility_percentage, schedule):
     harvest_per_month = Recipe(title=title)
     for key in total_harvest:
         harvest_per_month[key] = total_harvest[key] / total_months
-    ## Note: the calculation here different from what was displayed in
-    ## the game in one case by an amount around 0.08-0.09, which
-    ## cannot be explained by regular rounding. The in-game numbers
-    ## appeared implausible, so this may be implausible rounding. In
-    ## any case, this is a margin of error we should generally allow
-    ## for in our planning anyway.
+    # Note: the calculation here differed from what was displayed in
+    # the game in one case by an amount around 0.08-0.09, which cannot
+    # be explained by regular rounding. The in-game numbers appeared
+    # implausible, so this may be a rounding bug or similar in game.
+    # In any case, this is a margin of error we should generally allow
+    # for in our planning anyway.
     water_per_month = total_water / total_months
     fertilizer_per_month = total_fertilizer / total_months
     harvest_per_month["water"] = -water_per_month
@@ -146,6 +151,47 @@ def get_food_needed(what, num_pops):
         "vegetables": Fraction(42, 8),
         }
     return pop_k * need_per_k[what]
+
+
+def get_excess_recipe(what, amount):
+    title = f"excess {what} consumption"
+    def make_recipe(data):
+        return Recipe(data, title=title)
+    def make_digester(consumed, fuel, compost):
+        multiplier = Fraction(amount, consumed)
+        recipe = Recipe(title=title)
+        recipe["Anaerobic Digester"] = multiplier
+        recipe[f"Anaerobic Digester ({what})"] = multiplier
+        recipe[what] = -amount
+        recipe["fuel"] = multiplier * fuel
+        recipe["compost"] = multiplier * compost
+        return recipe
+    if what == "fruit":
+        return make_digester(12, 12, 1)
+    elif what == "wheat":
+        return make_digester(12, 12, 1)
+    elif what == "corn":
+        return make_digester(14, 14, 1)
+    elif what == "soybean":
+        return make_digester(12, 12, 1)
+    elif what == "sugar cane":
+        return make_digester(12, 8, 1)
+    elif what == "meat trimmings":
+        return make_digester(8, 4, 2)
+    elif what == "egg":
+        return make_digester(12, 12, 1)
+    elif what == "biomass":
+        multiplier = Fraction(amount, 24)
+        return make_recipe({
+            "Mixer II (biomass to compost)": multiplier,
+            "biomass": -multiplier * 24,
+            "compost": multiplier * 16,
+            })
+    elif what == "canola":
+        return make_recipe({
+            "Remains at Farm (canola)": amount,
+            what: -amount})
+    raise ValueError(what)
 
 
 def get_recipe(what, needed, /, tag=None):
@@ -265,71 +311,91 @@ def get_recipe(what, needed, /, tag=None):
     raise ValueError(what)
 
 
-def get_food_processing(num_pops, full_chicken_farms, verbose=False):
-    # If full_chicken_farms is set, we round up the chicken carcasses
-    # to multiples of 10, so that we have full chicken farms.
-
-    processing = Recipe(title=f"food processing for {num_pops} pops")
-
-    def add_recipe(what, amount, tag=None):
-        nonlocal processing
-        recipe = get_recipe(what, amount, tag=tag)
-        if verbose:
-            recipe.dump()
-        processing += recipe
-
-    for food in REFINED_FOODS:
-        add_recipe(food, get_food_needed(food, num_pops))
-
-    intermediates = ["sugar", "flour", "cooking oil", "meat trimmings"]
-    for what in intermediates:
-        add_recipe(what, -processing[what])
-
-    carcasses_needed = -processing["chicken carcass"]
-    if full_chicken_farms:
-        full_farms, remainder = divmod(carcasses_needed, 10)
-        if remainder:
-            full_farms += 1
-        carcasses_needed = full_farms * 10
-    add_recipe("chicken carcass", carcasses_needed)
-    ## TODO: If we parametrize the production targets more, we need to
-    ## change the assertion to more logic where we also deal with the
-    ## case where egg production is more limited than chicken carcass
-    ## production. (We then need to compute the number of farms based
-    ## on the egg target.)
-    assert processing["egg"] >= get_food_needed("egg", num_pops)
-
-    # If there are excess chicken carcasses, they become meat trimmings.
-    excess_carcasses = processing["chicken carcass"]
-    if excess_carcasses:
-        trimmings = excess_carcasses * Fraction(9, 10)
-        add_recipe("meat trimmings", trimmings, "excess")
-
-    add_recipe("animal feed", -processing["animal feed"])
-
-    should_be_balanced = ["animal feed", "chicken carcass", "cooking oil", "flour", "sugar"]
-    for what in should_be_balanced:
-        assert processing[what] == 0, what
-        del processing[what]
-
-    if verbose:
-        processing.dump()
-    return processing
+def get_chicken_farms_needed(recipe, use_whole_chicken_farms):
+    carcasses = -recipe["chicken carcass"]
+    eggs = -recipe["egg"]
+    farm_demand = max(Fraction(carcasses, 10),
+                      Fraction(eggs, Fraction(732, 100)))
+    if use_whole_chicken_farms:
+        full_farms, remainder = divmod(farm_demand, 1)
+        return full_farms + int(remainder > 0)
+    else:
+        return farm_demand
 
 
-def get_food_consumption(num_pops):
+def get_food_processing(min_consumption, max_consumption, use_whole_chicken_farms):
+    min_processing = Recipe(title=f"food processing (min load)")
+    max_processing = Recipe(title=f"food processing (max load)")
+
+    for processing, consumption in [(min_processing, min_consumption),
+                                    (max_processing, max_consumption)]:
+        for food, amount in consumption.items():
+            if food in REFINED_FOODS:
+                processing += get_recipe(food, -amount)
+
+        intermediates = ["sugar", "flour", "cooking oil", "meat trimmings"]
+        for what in intermediates:
+            processing += get_recipe(what, -processing[what])
+
+    farms_needed = get_chicken_farms_needed(max_consumption + max_processing,
+                                            use_whole_chicken_farms)
+
+    for processing in [min_processing, max_processing]:
+        processing += get_recipe("chicken carcass", farms_needed * 10)
+        # Excess chicken carcasses become meat trimmings.
+        excess_carcasses = processing["chicken carcass"]
+        if excess_carcasses:
+            trimmings = excess_carcasses * Fraction(9, 10)
+            processing += get_recipe("meat trimmings", trimmings, tag="excess")
+
+        processing += get_recipe("animal feed", -processing["animal feed"])
+
+        should_be_balanced = ["animal feed", "chicken carcass", "cooking oil", "flour", "sugar"]
+        for what in should_be_balanced:
+            assert processing[what] == 0, what
+            del processing[what]
+
+    return min_processing, max_processing
+
+
+def get_excess_conversion(farms, min_pops, max_pops, use_whole_chicken_farms):
+    farm_production = get_farm_production(farms)
+    min_consumption = get_food_consumption(min_pops, REFINED_FOODS + ["egg"])
+    max_consumption = get_food_consumption(max_pops, REFINED_FOODS + ["egg"])
+    min_processing, max_processing = get_food_processing(
+        min_consumption, max_consumption, use_whole_chicken_farms)
+    min_balance = Recipe(farm_production + min_processing + min_consumption, title="min balance")
+    max_balance = Recipe(farm_production + max_processing + max_consumption, title="max balance")
+
+    excess_products = ["biomass", "canola", "egg", "meat trimmings",
+                       "corn", "soybean", "sugar cane", "wheat", "fruit"]
+    for balance in [min_balance, max_balance]:
+        for what, amount in balance.items():
+            if amount > 0 and what[0].islower():
+                assert what in excess_products
+    conversion = Recipe(title=f"excess conversion ({min_pops}-{max_pops} pops)")
+    for what in excess_products:
+        min_value, max_value = sorted([min_balance[what], max_balance[what]])
+        if what == "biomass":
+            assert max_balance[what] >= min_balance[what]
+        else:
+            assert min_balance[what] >= max_balance[what]
+        value = max(min_balance[what], max_balance[what])
+        conversion += get_excess_recipe(what, value)
+    return conversion
+
+
+def get_food_consumption(num_pops, foods=ALL_FOODS):
     consumption = Recipe(title=f"food consumption for {num_pops} pops")
-    for food in ALL_FOODS:
+    for food in foods:
         consumption[food] = -get_food_needed(food, num_pops)
     return consumption
 
 
-def get_farm_production(farms, verbose=False):
+def get_farm_production(farms):
     production = Recipe(title=f"farm production ({len(farms)} farms)")
     for farm_kind, fertility, schedule in farms:
         recipe = get_farm_info(farm_kind, fertility, schedule)
-        if verbose:
-            recipe.dump()
         production += recipe
     return production
 
@@ -361,50 +427,45 @@ def get_old_farms():
 
 
 def get_middle_plateau_balance(num_pops):
-    balance = Recipe(title="new farms and food processing balance")
+    consumption = get_food_consumption(num_pops)
+    min_processing, max_processing = get_food_processing(
+        consumption, consumption,
+        use_whole_chicken_farms=True)
+    balance = Recipe(title=f"new farms and food processing balance ({num_pops} pops)")
     balance += get_farm_production(get_new_farms())
-    balance += get_food_processing(num_pops=num_pops, full_chicken_farms=True, verbose=False)
+    balance += max_processing
     return balance
 
 
 def get_lower_plateau_balance(num_pops):
-    balance = Recipe(title="old farms and settlement balance")
+    balance = Recipe(title=f"old farms and settlement balance ({num_pops} pops)")
     balance += get_farm_production(get_old_farms())
     balance += get_food_consumption(num_pops)
     return balance
 
 
 def get_overall_food_balance(num_pops):
-    balance = Recipe(title="overall food balance")
+    balance = Recipe(title=f"overall food balance ({num_pops} pops)")
     balance += get_lower_plateau_balance(num_pops)
     balance += get_middle_plateau_balance(num_pops)
     return balance
 
 
-# TODO:
-## - Make get_food_processing() more general to allow arbitrary targets for the refined
-##   foods.
-## - In get_food_processing(), or in a new function built on top of a modified
-##   get_food_processing(), allow setting two production targets:
-##   - One with the current semantics, which gives the production we
-##     eventually need in the steady state at the max designed population.
-##     This is in particular used to decide how many of each building we need.
-##   - A lower one that we can use to see how much excess will be generated
-##     or input product will remain unused if we don't run thing in full throttle,
-##     for example because population is still lower. This can then be used to
-##     dimension the excess consumption buildings.
-## - Add the excess steps that consume biomass and excess crops and
-##   foods, producing fuel and organic fertilizer.
-## - Add fertilizer production.
-
 def main():
-    num_pops = 5200 * Fraction(14, 10)
-    num_pops = 8000
-    # get_farm_production(get_new_farms()).dump()
-    # get_farm_production(get_old_farms()).dump()
+    min_pops = 4400 * Fraction(14, 10)
+    # max_pops = 5200 * Fraction(14, 10)
+    max_pops = 8000
+    num_pops = max_pops
+
+    get_food_consumption(num_pops).dump()
+    get_farm_production(get_new_farms()).dump()
+    get_farm_production(get_old_farms()).dump()
     get_lower_plateau_balance(num_pops).dump()
     get_middle_plateau_balance(num_pops).dump()
     get_overall_food_balance(num_pops).dump()
+
+    get_excess_conversion(get_new_farms(), min_pops, max_pops,
+                          use_whole_chicken_farms=True).dump()
 
 
 if __name__ == "__main__":
