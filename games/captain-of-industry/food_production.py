@@ -421,7 +421,31 @@ def get_old_farms():
         ("Greenhouse II", 100, ["potato", "vegetables"]),
         ("Greenhouse II", 100, ["corn", "vegetables"]),
         ("Greenhouse II", 100, ["vegetables", "potato", "tree sapling"]),
+        ("Greenhouse II", 100, ["corn", "vegetables"]),
+    ]
+    return farms
+
+
+def get_combined_farms():
+    farms = [
         ("Greenhouse II", 100, ["corn", "potato"]),
+        ("Greenhouse II", 100, ["corn", "soybean"]),
+        ("Greenhouse II", 100, ["soybean", "corn"]),
+        ("Greenhouse II", 100, ["corn", "wheat"]),
+        #
+        ("Greenhouse II", 100, ["corn", "wheat"]),
+        ("Greenhouse II", 100, ["wheat", "corn"]),
+        ("Greenhouse II", 100, ["wheat", "corn"]),
+        ("Greenhouse II", 100, ["corn", "vegetables"]),
+        #
+        ("Greenhouse II", 100, ["canola", "fruit", "canola", "vegetables"]),
+        ("Greenhouse II", 100, ["canola", "fruit"]),
+        ("Greenhouse II", 100, ["corn", "fruit", "corn", "sugar cane"]),
+        ("Greenhouse II", 100, ["fruit", "vegetables"]),
+        #
+        ("Greenhouse II", 100, ["vegetables", "fruit"]),
+        ("Greenhouse II", 100, ["potato", "vegetables"]),
+        ("Greenhouse II", 100, ["potato", "corn", "vegetables"]),
     ]
     return farms
 
@@ -451,21 +475,36 @@ def get_overall_food_balance(num_pops):
     return balance
 
 
+def get_combined_food_balance(num_pops):
+    consumption = get_food_consumption(num_pops)
+    min_processing, max_processing = get_food_processing(
+        consumption, consumption,
+        use_whole_chicken_farms=True)
+    balance = Recipe(title=f"combined farms and food processing balance ({num_pops} pops)")
+    balance += get_farm_production(get_combined_farms())
+    balance += max_processing
+    balance += get_food_consumption(num_pops)
+    return balance
+
+
 def main():
-    min_pops = 4400 * Fraction(14, 10)
+    # min_pops = 4400 * Fraction(14, 10)
     # max_pops = 5200 * Fraction(14, 10)
-    max_pops = 8000
+    # max_pops = 8000
+    min_pops = 5200 * Fraction(14, 10)
+    max_pops = 6400 * Fraction(14, 10)
+    max_pops = 9000
     num_pops = max_pops
 
     get_food_consumption(num_pops).dump()
-    get_farm_production(get_new_farms()).dump()
-    get_farm_production(get_old_farms()).dump()
-    get_lower_plateau_balance(num_pops).dump()
-    get_middle_plateau_balance(num_pops).dump()
-    get_overall_food_balance(num_pops).dump()
-
-    get_excess_conversion(get_new_farms(), min_pops, max_pops,
-                          use_whole_chicken_farms=True).dump()
+    # get_farm_production(get_new_farms()).dump()
+    # get_farm_production(get_old_farms()).dump()
+    get_farm_production(get_combined_farms()).dump()
+    # get_lower_plateau_balance(num_pops).dump()
+    # get_middle_plateau_balance(num_pops).dump()
+    get_combined_food_balance(num_pops).dump()
+    # get_excess_conversion(get_combined_farms(), min_pops, max_pops,
+    #                       use_whole_chicken_farms=True).dump()
 
 
 if __name__ == "__main__":
