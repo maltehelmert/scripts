@@ -494,6 +494,7 @@ def main():
     min_pops = 5200 * Fraction(14, 10)
     max_pops = 6400 * Fraction(14, 10)
     max_pops = 9000
+    max_pops = 7040 * Fraction(14, 10)
     num_pops = max_pops
 
     get_food_consumption(num_pops).dump()
