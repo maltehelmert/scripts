@@ -185,7 +185,7 @@ def get_excess_conversion(farms, min_pops, max_pops, use_whole_chicken_farms):
     for balance in [min_balance, max_balance]:
         for what, amount in balance.items():
             if amount > 0 and what[0].islower():
-                assert what in excess_products
+                assert what in excess_products, (what, amount)
     conversion = Recipe(title=f"excess conversion ({min_pops}-{max_pops} pops)")
     for what in excess_products:
         min_value, max_value = sorted([min_balance[what], max_balance[what]])
@@ -213,33 +213,7 @@ def get_farm_production(farms):
     return production
 
 
-def get_new_farms():
-    farms = [
-        ("Greenhouse II", 100, ["corn", "wheat", "corn", "soybean"]),
-        ("Greenhouse II", 100, ["corn", "wheat", "corn", "soybean"]),
-        ("Greenhouse II", 100, ["corn", "wheat", "corn", "soybean"]),
-        ("Greenhouse II", 100, ["corn", "wheat", "corn", "soybean"]),
-        ("Greenhouse II", 100, ["corn", "wheat"]),
-        ("Greenhouse II", 100, ["corn", "wheat", "corn", "sugar cane"]),
-        ("Greenhouse II", 100, ["corn", "fruit"]),
-        ("Greenhouse II", 100, ["canola", "canola", "canola", "fruit"]),
-    ]
-    return farms
-
-
-def get_old_farms():
-    farms = [
-        ("Greenhouse II", 100, ["fruit", "vegetables"]),
-        ("Greenhouse II", 100, ["fruit", "vegetables"]),
-        ("Greenhouse II", 100, ["potato", "vegetables"]),
-        ("Greenhouse II", 100, ["corn", "vegetables"]),
-        ("Greenhouse II", 100, ["vegetables", "potato", "tree sapling"]),
-        ("Greenhouse II", 100, ["corn", "vegetables"]),
-    ]
-    return farms
-
-
-def get_combined_farms():
+def get_rocky_beach_farms():
     farms = [
         ("Greenhouse II", 100, ["corn", "potato"]),
         ("Greenhouse II", 100, ["corn", "soybean"]),
@@ -263,61 +237,27 @@ def get_combined_farms():
     return farms
 
 
-def get_middle_plateau_balance(num_pops):
+def get_rocky_beach_food_balance(num_pops):
     consumption = get_food_consumption(num_pops)
     min_processing, max_processing = get_food_processing(
         consumption, consumption,
         use_whole_chicken_farms=True)
-    balance = Recipe(title=f"new farms and food processing balance ({num_pops} pops)")
-    balance += get_farm_production(get_new_farms())
-    balance += max_processing
-    return balance
-
-
-def get_lower_plateau_balance(num_pops):
-    balance = Recipe(title=f"old farms and settlement balance ({num_pops} pops)")
-    balance += get_farm_production(get_old_farms())
-    balance += get_food_consumption(num_pops)
-    return balance
-
-
-def get_overall_food_balance(num_pops):
-    balance = Recipe(title=f"overall food balance ({num_pops} pops)")
-    balance += get_lower_plateau_balance(num_pops)
-    balance += get_middle_plateau_balance(num_pops)
-    return balance
-
-
-def get_combined_food_balance(num_pops):
-    consumption = get_food_consumption(num_pops)
-    min_processing, max_processing = get_food_processing(
-        consumption, consumption,
-        use_whole_chicken_farms=True)
-    balance = Recipe(title=f"combined farms and food processing balance ({num_pops} pops)")
-    balance += get_farm_production(get_combined_farms())
+    balance = Recipe(title=f"farms and food processing balance ({num_pops} pops)")
+    balance += get_farm_production(get_rocky_beach_farms())
     balance += max_processing
     balance += get_food_consumption(num_pops)
     return balance
 
 
 def main():
-    # min_pops = 4400 * Fraction(14, 10)
-    # max_pops = 5200 * Fraction(14, 10)
-    # max_pops = 8000
     min_pops = 5200 * Fraction(14, 10)
-    max_pops = 6400 * Fraction(14, 10)
-    max_pops = 9000
     max_pops = 7040 * Fraction(14, 10)
     num_pops = max_pops
 
     get_food_consumption(num_pops).dump()
-    # get_farm_production(get_new_farms()).dump()
-    # get_farm_production(get_old_farms()).dump()
-    get_farm_production(get_combined_farms()).dump()
-    # get_lower_plateau_balance(num_pops).dump()
-    # get_middle_plateau_balance(num_pops).dump()
-    get_combined_food_balance(num_pops).dump()
-    # get_excess_conversion(get_combined_farms(), min_pops, max_pops,
+    get_farm_production(get_rocky_beach_farms()).dump()
+    get_rocky_beach_food_balance(num_pops).dump()
+    # get_excess_conversion(get_rocky_beach_farms(), min_pops, max_pops,
     #                       use_whole_chicken_farms=True).dump()
 
 
