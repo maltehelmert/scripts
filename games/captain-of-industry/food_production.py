@@ -96,7 +96,11 @@ def get_excess_recipe(what, amount):
         recipe["fuel"] = multiplier * fuel
         recipe["compost"] = multiplier * compost
         return recipe
-    if what == "fruit":
+    if what == "potato":
+        return make_digester(14, 8, 1)
+    elif what == "vegetables":
+        return make_digester(14, 8, 1)
+    elif what == "fruit":
         return make_digester(12, 12, 1)
     elif what == "wheat":
         return make_digester(12, 12, 1)
@@ -181,7 +185,8 @@ def get_excess_conversion(farms, min_pops, max_pops, use_whole_chicken_farms):
     max_balance = Recipe(farm_production + max_processing + max_consumption, title="max balance")
 
     excess_products = ["biomass", "canola", "egg", "meat trimmings",
-                       "corn", "soybean", "sugar cane", "wheat", "fruit"]
+                       "corn", "soybean", "sugar cane", "wheat", "fruit",
+                       "potato", "vegetables"]
     for balance in [min_balance, max_balance]:
         for what, amount in balance.items():
             if amount > 0 and what[0].islower():
@@ -233,6 +238,7 @@ def get_rocky_beach_farms():
         ("Greenhouse II", 100, ["vegetables", "fruit"]),
         ("Greenhouse II", 100, ["potato", "vegetables"]),
         ("Greenhouse II", 100, ["potato", "corn", "vegetables"]),
+        ("Greenhouse II", 100, ["wheat", "potato"]),
     ]
     return farms
 
