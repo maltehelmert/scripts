@@ -22,12 +22,14 @@ function handle-file {
               "$1" == 'Program Files (x86)' ||
               "$1" == 'Programme' ||
               "$1" == 'Recovery' ||
+              "$1" == 'SteuerSparErklärung Steuerjahr 2024.lnk' ||
               "$1" == 'Steuertipps' ||
               "$1" == 'System Volume Information' ||
               "$1" == 'Windows' ||
               "$1" == 'hiberfil.sys' ||
               "$1" == 'inetpub' ||
               "$1" == 'pagefile.sys' ||
+              "$1" == 'rtr96D5.tmp' ||
               "$1" == 'swapfile.sys'
           ]]; then
         return 2
