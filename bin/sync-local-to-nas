@@ -41,4 +41,6 @@ fi
 ## For this script, deletions are common, and because we only ever
 ## sync in one direction, this should be safe to use.
 
-rsync -avz --partial --progress --delete $SRC_DIR $OPTIONS $DEST_DIR
+## The options here are tailored to work around issues with the NAS,
+## suggested largely by ChatGPT.
+rsync -av --partial --progress --delete --whole-file --no-compress --inplace -e "ssh -T -o Compression=no -o ServerAliveInterval=30" $SRC_DIR $OPTIONS $DEST_DIR
