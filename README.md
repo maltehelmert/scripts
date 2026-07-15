@@ -20,6 +20,8 @@
     * `broadcast-yadm`: run yadm pull from many machines
     * `make-archive`: turn a directory into an encrypted SquashFS archive
   * `games`: scripts for games
+    * `captain-of-industry`: calculate stuff for Captain of Industry
+    * `evolve`: calculate stuff for EvolveIdle
     * `factorio`: calculate stuff for Factorio
     * `mini-settlers`: calculate stuff for Mini Settlers
   * `lib`: libraries and scripts that are part of my basic setup

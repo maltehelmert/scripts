@@ -1,0 +1,88 @@
+This file contains notes on the battles conducted on
+"Civics/Government".
+
+* inputs
+
+- battalion_size (how many soldiers are attacking)
+- soldier_rating (as displayed, but including fractions)
+- armor (see below)
+
+* assumptions
+
+- enemy "Military Rating" is "Weak (50)"
+- "Campaign" is "Assault" (global.civic.garrison.tactic == 3)
+- no attackers are wounded
+- no armored
+- no claws
+- no frail
+- no infectious
+- no instinct
+- no puny
+- no revive
+- no scales
+- no slaver
+- no Tortoisan
+- no banana republic
+- no rage
+- no swamp
+
+* notes on armor
+
+- is 0 without tech, 1 for leather armor, 2 for plate armor,
+  3 for kevlar, 4 for nanoweave west
+- so typically 3 in the scenarios we're interested here, leading up to unification
+
+* notes on loot
+
+- scales with log(looters), where looters is battalion_size capped at
+  50 for Assault (modified for high-pop races)
+
+* combat calculations
+
+army_rating = int(battalion_size * soldier_rating)
+luck = randrange(5, 16)
+army = army_rating * luck / 10
+
+enemy = randrange(25, 100)
+
+win battle if army > enemy
+
+if win:
+    min_death = 0
+    max_death = int(battalion_size / 2)
+    base_wounded = 0
+else:
+    min_death = 1
+    max_death = battalion_size
+    base_wounded = 1
+
+max_death = clip(max_death, 1, 50)
+death = randrange(min_death, max_death)
+death -= armor
+death = max(death, min_death)
+lose "death" soldiers
+
+survivors = battalion_size - death
+wounded = base_wounded + randrange(survivors)
+wound "wounded" soldiers
+
+* lessons learned
+
+- Attacking with an odd battalion_size is preferable: winning
+  probabilities and loot increase, but the number of deaths does not.
+
+- Best strategy to minimize losses vs. loot requires more calculations
+  or simulation, but should not be too difficult to set up based on
+  the above. Either ignore loot, or use log(looters) as a proxy.
+
+- The winning odds are summarized by the game in the "advantage"
+  calculations, which follow a different code path from the actual
+  battle calculations, so recommendations based on the advantage
+  calculations would need further analysis.
+
+- In general, attacking with smaller battalions also leads to fewer
+  wounded soldiers on a successful attack because we select uniformly
+  from [0, survivors) where survivors is the number of attackers not
+  killed by the attack, and the interval being half-open on the right
+  means makes small numbers of survivors beneficial for this
+  calculation.
